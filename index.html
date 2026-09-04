@@ -80,6 +80,7 @@ const fmtFechaHora = iso => {
 let D = null;       // datos ya transformados (mismo formato que usaba data.js)
 let perfil = null;  // { id, nombre_completo, rol, dupla_asignada }
 let reportesCache = null; // { rows } o { error } — se carga bajo demanda al entrar a la vista Reportes
+let misReportesCache = null; // ídem, para la vista "Mis reportes" (filtrada a los propios)
 let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1, trimFicha: 'TODOS', chartCompania: null, chartRamo: null, chartEvo: 'TOTAL', cmpDim: 'ZONA', cmpSel: [], cmpDesglose: null };
 
 /* ============== PANTALLA DE CARGA ============== */
@@ -241,6 +242,7 @@ function renderShell() {
           <button data-view="dashboard">▦ <span>Dashboard</span></button>
           <button data-view="productores">♙ <span>Productores</span></button>
           <button data-view="comparar">⇄ <span>Comparar</span></button>
+          <button data-view="mis-reportes">🔔 <span>Mis reportes</span></button>
           ${perfil.rol === 'admin' ? '<button data-view="reportes">✉ <span>Reportes</span></button>' : ''}
         </nav>
         <div class="userbox">
@@ -264,6 +266,7 @@ function renderShell() {
     state.view = b.dataset.view;
     state.pas = null;
     if (b.dataset.view === 'reportes') reportesCache = null;
+    if (b.dataset.view === 'mis-reportes') misReportesCache = null;
     render();
   });
   document.getElementById('brand-home').onclick = () => { state.view = 'dashboard'; state.pas = null; render(); };
@@ -792,7 +795,7 @@ function render() {
   const cursorPos = (activo && typeof activo.selectionStart === 'number') ? activo.selectionStart : null;
 
   nav();
-  if (state.view === 'dashboard') dashboard(); else if (state.view === 'productores') productores(); else if (state.view === 'comparar') comparar(); else if (state.view === 'reportes') vistaReportes(); else ficha(state.pas);
+  if (state.view === 'dashboard') dashboard(); else if (state.view === 'productores') productores(); else if (state.view === 'comparar') comparar(); else if (state.view === 'reportes') vistaReportes(); else if (state.view === 'mis-reportes') vistaMisReportes(); else ficha(state.pas);
 
   // Le devolvemos el foco al elemento que lo tenia (ahora es un elemento nuevo, pero con el mismo id)
   if (activoId) {
@@ -1064,6 +1067,41 @@ function vistaReportes() {
       render();
     };
   });
+}
+
+/* ============== MIS REPORTES: semáforo de mis propios reportes (para cualquier usuario) ============== */
+const SEMAFORO_REPORTE = {
+  pendiente: { color: '#dc2626', bg: '#fef2f2', etiqueta: 'Reporte abierto' },
+  en_revision: { color: '#d97706', bg: '#fffbeb', etiqueta: 'En revisión' },
+  resuelto: { color: '#16a34a', bg: '#f0fdf4', etiqueta: 'Reporte cerrado' },
+};
+function pillSemaforo(estado) {
+  const e = SEMAFORO_REPORTE[estado] || SEMAFORO_REPORTE.pendiente;
+  return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${e.bg};color:${e.color};font-size:11px;font-weight:700"><span style="width:8px;height:8px;border-radius:50%;background:${e.color};display:inline-block"></span>${esc(e.etiqueta)}</span>`;
+}
+
+async function cargarMisReportes() {
+  const { data, error } = await fetchAllRows('reportes');
+  misReportesCache = error ? { error: error.message } : { rows: (data || []).filter(r => r.usuario_id === perfil.id) };
+  render();
+}
+
+function vistaMisReportes() {
+  if (misReportesCache === null) {
+    $('#app').innerHTML = `<div class="top"><div><h1>Mis reportes</h1><div class="sub">Lo que reportaste y en qué estado está</div></div></div><div class="loading">Cargando...</div>`;
+    cargarMisReportes();
+    return;
+  }
+  if (misReportesCache.error) {
+    $('#app').innerHTML = `<div class="top"><div><h1>Mis reportes</h1></div></div><div class="card"><div class="formerr">No se pudieron cargar: ${esc(misReportesCache.error)}</div></div>`;
+    return;
+  }
+
+  const filas = misReportesCache.rows.slice().sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
+
+  $('#app').innerHTML = `<div class="top"><div><h1>Mis reportes</h1><div class="sub">${fmt(filas.length)} enviados</div></div><button class="btn-secondary" id="btn-recargar-mis-reportes">Recargar</button></div>${filas.map(r => `<div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="sub">${esc(fmtFechaHora(r.creado_en))} · ${esc(r.vista || '—')}</span>${pillSemaforo(r.estado || 'pendiente')}</div><p style="margin:10px 0 0">${esc(r.mensaje)}</p></div>`).join('') || '<div class="card"><div class="empty">Todavía no mandaste ningún reporte</div></div>'}`;
+
+  document.getElementById('btn-recargar-mis-reportes').onclick = () => { misReportesCache = null; render(); };
 }
 
 /* ============== PUNTO DE ENTRADA ============== */

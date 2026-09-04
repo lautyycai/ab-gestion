@@ -704,7 +704,6 @@ function renderTablaProductores() {
 let fichaTrimPas = null;
 
 function ficha(pas) {
-  console.log('DEBUG ficha() cargas encontradas para', pas, ':', D.production.filter(x => x.PAS === pas).length);
   const p = D.producers.find(x => x.PAS === pas);
   if (!p) { state.view = 'productores'; return render() }
 

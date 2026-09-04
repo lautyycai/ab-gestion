@@ -1052,7 +1052,10 @@ function vistaReportes() {
   const filas = reportesCache.rows.slice().sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
   const pendientes = filas.filter(r => (r.estado || 'pendiente') === 'pendiente').length;
 
-  $('#app').innerHTML = `<div class="top"><div><h1>Reportes</h1><div class="sub">${fmt(filas.length)} recibidos · ${fmt(pendientes)} pendientes</div></div><button class="btn-secondary" id="btn-recargar-reportes">Recargar</button></div><div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Vista</th><th>Mensaje</th><th>Estado</th></tr></thead><tbody>${filas.map(r => `<tr><td>${esc(fmtFechaHora(r.creado_en))}</td><td>${esc(r.usuario_nombre || '—')}</td><td>${esc(r.vista || '—')}</td><td style="white-space:normal;max-width:420px">${esc(r.mensaje)}</td><td><select class="select" style="padding:5px 8px;font-size:11px" data-cambiar-estado="${r.id}">${ESTADOS_REPORTE.map(e => `<option value="${e.valor}" ${e.valor === (r.estado || 'pendiente') ? 'selected' : ''}>${esc(e.etiqueta)}</option>`).join('')}</select></td></tr>`).join('') || `<tr><td colspan="5"><div class="empty">No hay reportes todavía</div></td></tr>`}</tbody></table></div></div>`;
+  $('#app').innerHTML = `<div class="top"><div><h1>Reportes</h1><div class="sub">${fmt(filas.length)} recibidos · ${fmt(pendientes)} pendientes</div></div><button class="btn-secondary" id="btn-recargar-reportes">Recargar</button></div><div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Vista</th><th>Mensaje</th><th>Estado</th><th>Respuesta</th></tr></thead><tbody>${filas.map(r => {
+    const resuelto = (r.estado || 'pendiente') === 'resuelto';
+    return `<tr style="${resuelto ? 'color:var(--muted);background:#fafbfc' : ''}"><td>${esc(fmtFechaHora(r.creado_en))}</td><td>${esc(r.usuario_nombre || '—')}</td><td>${esc(r.vista || '—')}</td><td style="white-space:normal;max-width:380px">${esc(r.mensaje)}</td><td><select class="select" style="padding:5px 8px;font-size:11px" data-cambiar-estado="${r.id}">${ESTADOS_REPORTE.map(e => `<option value="${e.valor}" ${e.valor === (r.estado || 'pendiente') ? 'selected' : ''}>${esc(e.etiqueta)}</option>`).join('')}</select></td><td style="white-space:normal;max-width:220px">${r.respuesta ? `<div style="margin-bottom:4px">${esc(r.respuesta)}</div>` : ''}<button class="link" style="border:0;background:none;cursor:pointer;font-size:11px;padding:0" data-responder="${r.id}">${r.respuesta ? 'Editar respuesta' : 'Responder'}</button></td></tr>`;
+  }).join('') || `<tr><td colspan="6"><div class="empty">No hay reportes todavía</div></td></tr>`}</tbody></table></div></div>`;
 
   document.getElementById('btn-recargar-reportes').onclick = () => { reportesCache = null; render(); };
   document.querySelectorAll('[data-cambiar-estado]').forEach(sel => {
@@ -1067,6 +1070,49 @@ function vistaReportes() {
       render();
     };
   });
+  document.querySelectorAll('[data-responder]').forEach(btn => {
+    btn.onclick = () => {
+      const r = reportesCache.rows.find(x => String(x.id) === btn.dataset.responder);
+      if (r) abrirModalResponder(r);
+    };
+  });
+}
+
+function abrirModalResponder(r) {
+  const html = `
+    <h2>Responder reporte</h2>
+    <div class="modal-sub">${esc(r.usuario_nombre || 'Usuario')} · ${esc(fmtFechaHora(r.creado_en))} · ${esc(r.vista || '—')}</div>
+    <div class="field" style="margin-top:12px"><b>Mensaje original</b>${esc(r.mensaje)}</div>
+    <div class="formgrid" style="margin-top:14px">
+      <div class="full"><label>Tu respuesta</label><textarea id="f-respuesta" rows="4" placeholder="Escribí una respuesta...">${esc(r.respuesta || '')}</textarea></div>
+    </div>
+    <div id="form-respuesta-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-cancelar-respuesta">Cancelar</button>
+      <button class="btn-primary" id="btn-guardar-respuesta">Guardar respuesta</button>
+    </div>`;
+  abrirModal(html);
+  document.getElementById('btn-cancelar-respuesta').onclick = cerrarModal;
+  document.getElementById('btn-guardar-respuesta').onclick = () => guardarRespuesta(r.id);
+}
+
+async function guardarRespuesta(id) {
+  const btn = document.getElementById('btn-guardar-respuesta');
+  const msg = document.getElementById('form-respuesta-msg');
+  msg.innerHTML = '';
+  const texto = document.getElementById('f-respuesta').value.trim();
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error } = await supa.from('reportes').update({ respuesta: texto || null }).eq('id', id);
+  btn.disabled = false; btn.textContent = 'Guardar respuesta';
+  if (error) {
+    msg.innerHTML = `<div class="formerr">No se pudo guardar: ${esc(error.message)}</div>`;
+    return;
+  }
+  const row = reportesCache.rows.find(r => String(r.id) === String(id));
+  if (row) row.respuesta = texto;
+  msg.innerHTML = '<div class="formok">Guardado.</div>';
+  setTimeout(() => { cerrarModal(); render(); }, 500);
 }
 
 /* ============== MIS REPORTES: semáforo de mis propios reportes (para cualquier usuario) ============== */
@@ -1099,7 +1145,7 @@ function vistaMisReportes() {
 
   const filas = misReportesCache.rows.slice().sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
 
-  $('#app').innerHTML = `<div class="top"><div><h1>Mis reportes</h1><div class="sub">${fmt(filas.length)} enviados</div></div><button class="btn-secondary" id="btn-recargar-mis-reportes">Recargar</button></div>${filas.map(r => `<div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="sub">${esc(fmtFechaHora(r.creado_en))} · ${esc(r.vista || '—')}</span>${pillSemaforo(r.estado || 'pendiente')}</div><p style="margin:10px 0 0">${esc(r.mensaje)}</p></div>`).join('') || '<div class="card"><div class="empty">Todavía no mandaste ningún reporte</div></div>'}`;
+  $('#app').innerHTML = `<div class="top"><div><h1>Mis reportes</h1><div class="sub">${fmt(filas.length)} enviados</div></div><button class="btn-secondary" id="btn-recargar-mis-reportes">Recargar</button></div>${filas.map(r => `<div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="sub">${esc(fmtFechaHora(r.creado_en))} · ${esc(r.vista || '—')}</span>${pillSemaforo(r.estado || 'pendiente')}</div><p style="margin:10px 0 0">${esc(r.mensaje)}</p>${r.respuesta ? `<div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:13px"><b style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">Respuesta</b>${esc(r.respuesta)}</div>` : ''}</div>`).join('') || '<div class="card"><div class="empty">Todavía no mandaste ningún reporte</div></div>'}`;
 
   document.getElementById('btn-recargar-mis-reportes').onclick = () => { misReportesCache = null; render(); };
 }

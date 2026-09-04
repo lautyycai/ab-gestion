@@ -1,0 +1,562 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AB Gestión</title><style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#e6e9ef;--accent:#2563eb;--accent2:#0f766e;--danger:#dc2626;--shadow:0 8px 24px rgba(15,23,42,.06)}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink);background:var(--bg)}button,input,select{font:inherit}.app{display:flex;min-height:100vh}.side{width:245px;background:#101828;color:#fff;padding:22px 14px;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column}.brand{font-weight:800;font-size:20px;padding:10px 12px 24px}.brand small{display:block;font-size:11px;color:#98a2b3;margin-top:4px;font-weight:500}.nav{flex:1}.nav button{display:block;width:100%;text-align:left;border:0;background:transparent;color:#cbd5e1;padding:12px 14px;border-radius:9px;margin:3px 0;cursor:pointer}.nav button.active,.nav button:hover{background:#1d2939;color:#fff}.userbox{border-top:1px solid #1d2939;padding:14px 12px;font-size:12px;color:#98a2b3}.userbox b{display:block;color:#fff;font-size:13px;margin-bottom:2px}.userbox .rolpill{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;background:#1d2939;color:#93c5fd;font-size:10px;font-weight:700;letter-spacing:.02em}.logout{margin-top:10px;width:100%;border:1px solid #2a3648;background:transparent;color:#cbd5e1;border-radius:8px;padding:7px;cursor:pointer;font-size:12px}.logout:hover{background:#1d2939;color:#fff}.main{margin-left:245px;padding:28px;width:calc(100% - 245px)}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.top h1{margin:0;font-size:28px}.sub{color:var(--muted);font-size:13px;margin-top:5px}.filters{display:flex;gap:10px;flex-wrap:wrap}.select,input{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 11px;color:var(--ink)}.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:18px}.kpi .label{font-size:12px;color:var(--muted)}.kpi .num{font-size:28px;font-weight:800;margin-top:7px}.two{grid-template-columns:1.35fr 1fr}.three{grid-template-columns:repeat(3,1fr)}.card h3{margin:0 0 14px;font-size:15px}.barrow{display:grid;grid-template-columns:150px 1fr 65px;gap:10px;align-items:center;margin:10px 0;font-size:12px}.bar{height:9px;background:#eef2f7;border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px}.tablewrap{overflow:auto;max-height:580px}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.table th{color:var(--muted);font-weight:650;position:sticky;top:0;background:#fff}.table tr:hover td{background:#f8fafc}.link{color:var(--accent);cursor:pointer;font-weight:700}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:11px}.profile{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field{padding:10px;background:#f8fafc;border-radius:8px}.field b{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.empty{padding:35px;text-align:center;color:var(--muted)}.back{border:0;background:#eef2ff;color:#3730a3;border-radius:8px;padding:8px 12px;cursor:pointer}.section{margin-top:18px}.search{min-width:260px}.notice{font-size:12px;color:var(--muted)}
+/* login screen */
+.loginwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.loginbox{width:340px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:30px}
+.loginbox h1{margin:0 0 4px;font-size:20px}
+.loginbox p{margin:0 0 22px;color:var(--muted);font-size:13px}
+.loginbox label{display:block;font-size:12px;font-weight:650;margin:14px 0 6px}
+.loginbox input{width:100%}
+.loginbox button{width:100%;margin-top:20px;border:0;background:var(--accent);color:#fff;padding:11px;border-radius:9px;font-weight:700;cursor:pointer}
+.loginbox button:disabled{opacity:.6;cursor:default}
+.loginerr{margin-top:14px;background:#fef2f2;color:var(--danger);border:1px solid #fecaca;border-radius:8px;padding:9px 11px;font-size:12px}
+.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+/* modal y formularios */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-box{background:#fff;border-radius:14px;max-width:600px;width:100%;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 20px 60px rgba(15,23,42,.25)}
+.modal-box h2{margin:0 0 4px;font-size:19px}
+.modal-box .modal-sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.formgrid label{display:block;font-size:12px;font-weight:650;margin-bottom:5px;color:var(--ink)}
+.formgrid input,.formgrid select,.formgrid textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;color:var(--ink)}
+.formgrid .full{grid-column:1 / -1}
+.formgrid .readonly{background:#f8fafc;color:var(--muted)}
+.companiarow{display:grid;grid-template-columns:1fr 110px 34px;gap:8px;margin-bottom:8px;align-items:center}
+.btn-primary{border:0;background:var(--accent);color:#fff;padding:10px 16px;border-radius:9px;font-weight:700;cursor:pointer}
+.btn-primary:disabled{opacity:.6;cursor:default}
+.btn-secondary{border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 16px;border-radius:9px;font-weight:650;cursor:pointer}
+.btn-add{border:1px dashed var(--line);background:#fff;color:var(--accent);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:650}
+.btn-del{border:0;background:#fef2f2;color:var(--danger);border-radius:7px;width:34px;height:34px;cursor:pointer;font-weight:700}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.formerr{background:#fef2f2;color:var(--danger);border:1px solid #fecaca;border-radius:8px;padding:9px 11px;font-size:12px;margin-top:14px}
+.formok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:9px 11px;font-size:12px;margin-top:14px}
+.btn-edit{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 13px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:650}
+.btn-edit:hover{background:#f8fafc}
+@media(max-width:900px){.side{width:70px}.brand span,.brand small,.nav button span,.userbox{display:none}.main{margin-left:70px;width:calc(100% - 70px)}.kpis,.two,.three{grid-template-columns:1fr}.profile{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}}
+</style></head><body>
+
+<div id="root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============== CONFIGURACIÓN SUPABASE ============== */
+const SUPABASE_URL = "https://miyiqasxcvnnzoyumzqd.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_2k9VMCy53CwqNhGancX-Yg_n4xPkyfc";
+const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const root = document.getElementById('root');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const fmt = n => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n || 0);
+
+let D = null;       // datos ya transformados (mismo formato que usaba data.js)
+let perfil = null;  // { id, nombre_completo, rol, dupla_asignada }
+let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1 };
+
+/* ============== PANTALLA DE CARGA ============== */
+function renderLoading(msg) {
+  root.innerHTML = `<div class="loading">${esc(msg || 'Cargando...')}</div>`;
+}
+
+/* ============== PANTALLA DE LOGIN ============== */
+function renderLogin(errorMsg) {
+  root.innerHTML = `
+    <div class="loginwrap">
+      <div class="loginbox">
+        <h1>AB Gestión</h1>
+        <p>Ingresá con tu usuario para continuar</p>
+        <form id="login-form">
+          <label>Usuario</label>
+          <input type="email" id="login-email" placeholder="tuusuario@abgestion.sistema" required>
+          <label>Contraseña</label>
+          <input type="password" id="login-pass" required>
+          ${errorMsg ? `<div class="loginerr">${esc(errorMsg)}</div>` : ''}
+          <button type="submit" id="login-btn">Ingresar</button>
+        </form>
+      </div>
+    </div>`;
+  document.getElementById('login-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true; btn.textContent = 'Ingresando...';
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-pass').value;
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    if (error) {
+      renderLogin('Usuario o contraseña incorrectos.');
+      return;
+    }
+    await iniciarApp();
+  };
+}
+
+/* ============== CARGA DE PERFIL (rol / dupla) ============== */
+async function cargarPerfil() {
+  const { data: { user } } = await supa.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supa.from('usuarios').select('*').eq('id', user.id).single();
+  if (error || !data) return null;
+  return data;
+}
+
+/* ============== CARGA Y TRANSFORMACIÓN DE DATOS ============== */
+async function cargarDatos() {
+  const [{ data: productoresRows, error: e1 }, { data: produccionesRows, error: e2 },
+         { data: detalleRows, error: e3 }, { data: catalogoRows, error: e4 }] = await Promise.all([
+    supa.from('productores').select('*'),
+    supa.from('producciones').select('*'),
+    supa.from('produccion_companias').select('*'),
+    supa.from('catalogos').select('*'),
+  ]);
+  if (e1 || e2 || e3 || e4) {
+    console.error(e1, e2, e3, e4);
+    throw new Error('No se pudieron cargar los datos desde Supabase.');
+  }
+
+  const pasIdToNombre = {};
+  const producers = (productoresRows || []).map(r => {
+    pasIdToNombre[r.id] = r.pas_nombre;
+    return {
+      _id: r.id,
+      'ORGANIZACIÓN': r.organizacion,
+      'PAS': r.pas_nombre,
+      'VINCULANTE': r.vinculante,
+      'EJECUTIVO': r.ejecutivo,
+      'TELÉFONO': r.telefono,
+      'MAIL': r.mail,
+      'FECHA DE NACIMIENTO': r.fecha_nacimiento,
+      'COMPAÑÍAS CON LAS QUE OPERA': r.companias_opera,
+      'CANTIDAD DE PÓLIZAS VIGENTES': r.cantidad_polizas_vigentes,
+      'OBSERVACIONES': r.observaciones,
+      'ESTADO': r.estado,
+      'ZONA': r.zona,
+      'LOCALIDAD/PROV': r.localidad_prov,
+    };
+  });
+
+  const companiasPorProduccion = {};
+  (detalleRows || []).forEach(d => {
+    if (!companiasPorProduccion[d.produccion_id]) companiasPorProduccion[d.produccion_id] = {};
+    companiasPorProduccion[d.produccion_id][d.compania] = (companiasPorProduccion[d.produccion_id][d.compania] || 0) + (+d.cantidad || 0);
+  });
+
+  const production = (produccionesRows || []).map(r => ({
+    _id: r.id,
+    _pas_id: r.pas_id,
+    'PAS': pasIdToNombre[r.pas_id] || '(desconocido)',
+    'RAMO': r.ramo,
+    'TRIMESTRE': r.trimestre,
+    'EJECUTIVO': r.ejecutivo,
+    'ORGANIZADOR': r.organizador,
+    'TOTAL': r.total_polizas,
+    'COMPANIAS': companiasPorProduccion[r.id] || {},
+  }));
+
+  const porTipo = t => [...new Set((catalogoRows || []).filter(c => c.tipo === t && c.activo !== false).map(c => c.valor))];
+  const catalog = {
+    ejecutivos: porTipo('ejecutivo'),
+    organizaciones: porTipo('organizacion'),
+    companias: porTipo('compania'),
+    vinculantes: porTipo('vinculante'),
+    ramos: porTipo('ramo'),
+    trimestres: porTipo('trimestre'),
+    estados: porTipo('estado'),
+    zonas: porTipo('zona'),
+    localidades: porTipo('localidad_prov'),
+  };
+
+  return { producers, production, catalog };
+}
+
+/* ============== ARRANQUE DE LA APP ============== */
+async function iniciarApp() {
+  renderLoading('Verificando usuario...');
+  perfil = await cargarPerfil();
+  if (!perfil) {
+    await supa.auth.signOut();
+    renderLogin('Tu usuario no tiene un perfil asignado. Contactá al administrador.');
+    return;
+  }
+  renderLoading('Cargando datos...');
+  try {
+    D = await cargarDatos();
+  } catch (err) {
+    root.innerHTML = `<div class="loading">Error cargando datos: ${esc(err.message)}</div>`;
+    return;
+  }
+  renderShell();
+}
+
+function renderShell() {
+  root.innerHTML = `
+    <div class="app">
+      <aside class="side">
+        <div class="brand">AB Gestión<span>●</span><small>Conectado a Supabase</small></div>
+        <nav class="nav">
+          <button data-view="dashboard">▦ <span>Dashboard</span></button>
+          <button data-view="productores">♙ <span>Productores</span></button>
+        </nav>
+        <div class="userbox">
+          <b>${esc(perfil.nombre_completo || 'Usuario')}</b>
+          <span class="rolpill">${esc((perfil.rol || '').toUpperCase())}</span>
+          ${perfil.dupla_asignada ? `<div style="margin-top:6px">${esc(perfil.dupla_asignada)}</div>` : ''}
+          <button class="logout" id="btn-logout">Cerrar sesión</button>
+        </div>
+      </aside>
+      <main class="main"><div id="app"></div></main>
+    </div>
+    <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this) cerrarModal()"></div>`;
+  document.getElementById('btn-logout').onclick = async () => {
+    await supa.auth.signOut();
+    D = null; perfil = null;
+    renderLogin();
+  };
+  document.querySelectorAll('.nav button').forEach(b => b.onclick = () => { state.view = b.dataset.view; state.pas = null; render(); });
+  render();
+}
+
+/* ============== PERMISOS ============== */
+function puedeEditarPas(p) {
+  if (!perfil) return false;
+  if (perfil.rol === 'admin') return true;
+  if (perfil.rol === 'editor') return p && p.EJECUTIVO === perfil.dupla_asignada;
+  return false;
+}
+function puedeCrearPas() {
+  return perfil && (perfil.rol === 'admin' || perfil.rol === 'editor');
+}
+
+/* ============== MODAL ============== */
+function abrirModal(html) {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.innerHTML = `<div class="modal-box">${html}</div>`;
+  overlay.style.display = 'flex';
+}
+function cerrarModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.style.display = 'none';
+  overlay.innerHTML = '';
+}
+
+/* ============== FORMULARIO: NUEVO / EDITAR PAS ============== */
+function abrirFormPAS(pasExistente) {
+  const esEdicion = !!pasExistente;
+  const p = pasExistente || {};
+  const duplaFija = perfil.rol === 'editor';
+  const ejecutivosOrdenados = [...D.catalog.ejecutivos].sort((a, b) => a.localeCompare(b, 'es'));
+  const estadosOrdenados = [...D.catalog.estados].sort((a, b) => a.localeCompare(b, 'es'));
+  const zonasOrdenadas = [...D.catalog.zonas].sort((a, b) => a.localeCompare(b, 'es'));
+
+  const html = `
+    <h2>${esEdicion ? 'Editar PAS' : 'Nuevo PAS'}</h2>
+    <div class="modal-sub">${esEdicion ? esc(p.PAS) : 'Cargar un nuevo productor asesor de seguros'}</div>
+    <div class="formgrid">
+      <div class="full"><label>PAS (nombre)</label><input id="f-pas" ${esEdicion ? 'readonly class="readonly"' : ''} value="${esc(p.PAS || '')}" placeholder="Nombre completo"></div>
+      <div><label>Organización</label><input id="f-org" value="${esc(p.ORGANIZACIÓN || '')}"></div>
+      <div><label>Vinculante</label><input id="f-vinc" value="${esc(p.VINCULANTE || '')}"></div>
+      <div>
+        <label>Ejecutivo (dupla)</label>
+        ${duplaFija
+      ? `<input class="readonly" readonly value="${esc(perfil.dupla_asignada || '')}"><input type="hidden" id="f-ejec" value="${esc(perfil.dupla_asignada || '')}">`
+      : `<select id="f-ejec">${opts(ejecutivosOrdenados, p.EJECUTIVO || 'TODOS')}</select>`}
+      </div>
+      <div><label>Teléfono</label><input id="f-tel" value="${esc(p.TELÉFONO || '')}"></div>
+      <div><label>Mail</label><input id="f-mail" type="email" value="${esc(p.MAIL || '')}"></div>
+      <div><label>Fecha de nacimiento</label><input id="f-fnac" type="date" value="${esc(p['FECHA DE NACIMIENTO'] || '')}"></div>
+      <div><label>Estado</label><select id="f-estado">${opts(estadosOrdenados, p.ESTADO || 'TODOS')}</select></div>
+      <div><label>Zona</label><select id="f-zona">${opts(zonasOrdenadas, p.ZONA || 'TODOS')}</select></div>
+      <div class="full"><label>Localidad / Prov. <span style="font-weight:400;color:var(--muted)">(sugiere según la zona, pero podés escribir una nueva)</span></label><input id="f-loc" list="datalist-loc" value="${esc(p['LOCALIDAD/PROV'] || '')}"><datalist id="datalist-loc"></datalist></div>
+      <div class="full"><label>Compañías con las que opera</label><input id="f-comp" value="${esc(p['COMPAÑÍAS CON LAS QUE OPERA'] || '')}"></div>
+      <div class="full"><label>Observaciones</label><textarea id="f-obs" rows="2">${esc(p.OBSERVACIONES || '')}</textarea></div>
+    </div>
+    <div id="form-pas-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-cancelar-pas">Cancelar</button>
+      <button class="btn-primary" id="btn-guardar-pas">${esEdicion ? 'Guardar cambios' : 'Crear PAS'}</button>
+    </div>`;
+  abrirModal(html);
+  document.getElementById('btn-cancelar-pas').onclick = cerrarModal;
+  document.getElementById('btn-guardar-pas').onclick = () => guardarPAS(esEdicion ? p._id : null);
+  actualizarLocalidadesPorZona(p.ZONA || 'TODOS');
+  document.getElementById('f-zona').onchange = e => actualizarLocalidadesPorZona(e.target.value);
+}
+
+// Arma la lista de localidades sugeridas para una zona, en base a lo que ya existe cargado en la base
+function actualizarLocalidadesPorZona(zona) {
+  const datalist = document.getElementById('datalist-loc');
+  if (!datalist) return;
+  const fuente = zona === 'TODOS' ? D.producers : D.producers.filter(p => p.ZONA === zona);
+  const localidades = [...new Set(fuente.map(p => p['LOCALIDAD/PROV']).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  datalist.innerHTML = localidades.map(l => `<option value="${esc(l)}">`).join('');
+}
+async function guardarPAS(idExistente) {
+  const btn = document.getElementById('btn-guardar-pas');
+  const msg = document.getElementById('form-pas-msg');
+  msg.innerHTML = '';
+  const val = id => document.getElementById(id).value.trim();
+
+  const pasNombre = val('f-pas');
+  if (!pasNombre) { msg.innerHTML = '<div class="formerr">El nombre del PAS es obligatorio.</div>'; return; }
+
+  const ejecutivo = perfil.rol === 'editor' ? perfil.dupla_asignada : (val('f-ejec') === 'TODOS' ? '' : val('f-ejec'));
+  if (!ejecutivo) { msg.innerHTML = '<div class="formerr">Falta elegir la dupla / ejecutivo.</div>'; return; }
+
+  const registro = {
+    pas_nombre: pasNombre,
+    organizacion: val('f-org'),
+    vinculante: val('f-vinc'),
+    ejecutivo: ejecutivo,
+    telefono: val('f-tel'),
+    mail: val('f-mail'),
+    fecha_nacimiento: val('f-fnac') || null,
+    companias_opera: val('f-comp'),
+    observaciones: val('f-obs'),
+    estado: val('f-estado') === 'TODOS' ? '' : val('f-estado'),
+    zona: val('f-zona') === 'TODOS' ? '' : val('f-zona'),
+    localidad_prov: val('f-loc'),
+  };
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  let error;
+  if (idExistente) {
+    ({ error } = await supa.from('productores').update(registro).eq('id', idExistente));
+  } else {
+    ({ error } = await supa.from('productores').insert(registro));
+  }
+  btn.disabled = false; btn.textContent = idExistente ? 'Guardar cambios' : 'Crear PAS';
+
+  if (error) {
+    msg.innerHTML = `<div class="formerr">No se pudo guardar: ${esc(error.message)}</div>`;
+    return;
+  }
+  msg.innerHTML = '<div class="formok">Guardado correctamente.</div>';
+  D = await cargarDatos();
+  setTimeout(() => { cerrarModal(); state.pas = pasNombre; state.view = 'ficha'; render(); }, 600);
+}
+
+/* ============== FORMULARIO: NUEVA PRODUCCIÓN (carga de pólizas) ============== */
+let filasCompaniaCount = 0;
+
+function abrirFormProduccion(p) {
+  filasCompaniaCount = 0;
+  const ramosOrdenados = [...D.catalog.ramos].sort((a, b) => a.localeCompare(b, 'es'));
+  const trimestresOrdenados = [...D.catalog.trimestres].sort((a, b) => a.localeCompare(b, 'es'));
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const html = `
+    <h2>Cargar producción</h2>
+    <div class="modal-sub">${esc(p.PAS)} · ${esc(p.EJECUTIVO || '')}</div>
+    <div class="formgrid">
+      <div><label>Ramo</label><select id="f-ramo">${opts(ramosOrdenados, 'TODOS')}</select></div>
+      <div><label>Trimestre</label><select id="f-trim">${opts(trimestresOrdenados, 'TODOS')}</select></div>
+      <div><label>Organizador</label><input id="f-organizador" value="${esc(p.ORGANIZACIÓN || '')}"></div>
+      <div><label>Fecha</label><input id="f-fecha" type="date" value="${hoy}"></div>
+    </div>
+    <div class="section">
+      <label>Compañías y cantidad de pólizas</label>
+      <div id="filas-compania"></div>
+      <button type="button" class="btn-add" id="btn-add-compania">+ Agregar compañía</button>
+    </div>
+    <div id="form-prod-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-cancelar-prod">Cancelar</button>
+      <button class="btn-primary" id="btn-guardar-prod">Guardar carga</button>
+    </div>`;
+  abrirModal(html);
+  agregarFilaCompania();
+  document.getElementById('btn-add-compania').onclick = agregarFilaCompania;
+  document.getElementById('btn-cancelar-prod').onclick = cerrarModal;
+  document.getElementById('btn-guardar-prod').onclick = () => guardarProduccion(p);
+}
+
+function agregarFilaCompania() {
+  filasCompaniaCount++;
+  const id = filasCompaniaCount;
+  const companiasOrdenadas = [...D.catalog.companias].sort((a, b) => a.localeCompare(b, 'es'));
+  const div = document.createElement('div');
+  div.className = 'companiarow';
+  div.id = `fila-comp-${id}`;
+  div.innerHTML = `<select id="fc-comp-${id}">${opts(companiasOrdenadas, 'TODOS')}</select><input id="fc-cant-${id}" type="number" min="0" placeholder="Cantidad"><button type="button" class="btn-del" data-fila="${id}">×</button>`;
+  document.getElementById('filas-compania').appendChild(div);
+  div.querySelector('.btn-del').onclick = () => { const f = document.getElementById(`fila-comp-${id}`); if (f) f.remove(); };
+}
+
+async function guardarProduccion(p) {
+  const btn = document.getElementById('btn-guardar-prod');
+  const msg = document.getElementById('form-prod-msg');
+  msg.innerHTML = '';
+
+  const ramo = document.getElementById('f-ramo').value;
+  const trimestre = document.getElementById('f-trim').value;
+  const organizador = document.getElementById('f-organizador').value.trim();
+  const fecha = document.getElementById('f-fecha').value || null;
+  if (ramo === 'TODOS' || trimestre === 'TODOS') { msg.innerHTML = '<div class="formerr">Elegí ramo y trimestre.</div>'; return; }
+
+  const filas = Array.from(document.querySelectorAll('#filas-compania .companiarow'));
+  const detalle = [];
+  for (const fila of filas) {
+    const id = fila.id.replace('fila-comp-', '');
+    const comp = document.getElementById(`fc-comp-${id}`).value;
+    const cant = parseInt(document.getElementById(`fc-cant-${id}`).value, 10);
+    if (comp !== 'TODOS' && cant > 0) detalle.push({ compania: comp, cantidad: cant });
+  }
+  if (detalle.length === 0) { msg.innerHTML = '<div class="formerr">Agregá al menos una compañía con cantidad mayor a 0.</div>'; return; }
+
+  const total = detalle.reduce((s, d) => s + d.cantidad, 0);
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { data: nuevaProd, error: errProd } = await supa.from('producciones').insert({
+    pas_id: p._id, ramo, trimestre, ejecutivo: p.EJECUTIVO, organizador, total_polizas: total, ultima_fecha: fecha,
+  }).select().single();
+
+  if (errProd) {
+    btn.disabled = false; btn.textContent = 'Guardar carga';
+    msg.innerHTML = `<div class="formerr">No se pudo guardar: ${esc(errProd.message)}</div>`;
+    return;
+  }
+
+  const filasDetalle = detalle.map(d => ({ produccion_id: nuevaProd.id, compania: d.compania, cantidad: d.cantidad }));
+  const { error: errDet } = await supa.from('produccion_companias').insert(filasDetalle);
+
+  btn.disabled = false; btn.textContent = 'Guardar carga';
+  if (errDet) {
+    msg.innerHTML = `<div class="formerr">La carga se creó pero hubo un error con el detalle de compañías: ${esc(errDet.message)}</div>`;
+    return;
+  }
+  msg.innerHTML = '<div class="formok">Carga guardada correctamente.</div>';
+  D = await cargarDatos();
+  setTimeout(() => { cerrarModal(); render(); }, 600);
+}
+
+/* ============== VISTAS (mismo comportamiento que antes) ============== */
+const $ = s => document.querySelector(s);
+const prodByPas = () => { const m = {}; D.production.forEach(x => m[x.PAS] = (m[x.PAS] || 0) + (+x.TOTAL || 0)); return m };
+const filteredProduction = () => D.production.filter(x => (state.org === 'TODOS' || x.ORGANIZADOR === state.org) && (state.pasSel === 'TODOS' || x.PAS === state.pasSel));
+function opts(arr, val) { return '<option value="TODOS">TODOS</option>' + arr.filter(Boolean).map(x => '<option value="' + esc(x) + '" ' + (x === val ? 'selected' : '') + '>' + esc(x) + '</option>').join('') }
+function nav() { document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.view === state.view)) }
+
+function render() {
+  // Guardamos que elemento tenia el foco (y la posicion del cursor si era un input de texto) antes de redibujar
+  const activo = document.activeElement;
+  const activoId = activo && activo.id;
+  const cursorPos = (activo && typeof activo.selectionStart === 'number') ? activo.selectionStart : null;
+
+  nav();
+  if (state.view === 'dashboard') dashboard(); else if (state.view === 'productores') productores(); else ficha(state.pas);
+
+  // Le devolvemos el foco al elemento que lo tenia (ahora es un elemento nuevo, pero con el mismo id)
+  if (activoId) {
+    const nuevo = document.getElementById(activoId);
+    if (nuevo) {
+      nuevo.focus();
+      if (cursorPos !== null && typeof nuevo.setSelectionRange === 'function') {
+        try { nuevo.setSelectionRange(cursorPos, cursorPos) } catch (e) {}
+      }
+    }
+  }
+}
+
+function dashboard() {
+  const rows = filteredProduction(); const total = rows.reduce((s, x) => s + (+x.TOTAL || 0), 0);
+  const pasSet = new Set(rows.map(x => x.PAS));
+  const ramo = {}, comp = {};
+  rows.forEach(x => { ramo[x.RAMO] = (ramo[x.RAMO] || 0) + x.TOTAL; Object.entries(x.COMPANIAS).forEach(([c, v]) => comp[c] = (comp[c] || 0) + v); });
+  const topP = Object.entries(prodByPas()).filter(([p]) => pasSet.has(p)).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const topC = Object.entries(comp).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const max = a => Math.max(...a.map(x => x[1]), 1);
+
+  // Desplegable 1: organizador (siempre habilitado, lista completa)
+  const organizadoresTodos = [...new Set(D.production.map(x => x.ORGANIZADOR).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+
+  // Desplegable 2: PAS -> solo se completa y habilita si ya elegiste un organizador puntual
+  const exigeOrg = state.org !== 'TODOS';
+  const pasDisponibles = exigeOrg
+    ? [...new Set(D.production.filter(x => x.ORGANIZADOR === state.org).map(x => x.PAS))].sort((a, b) => a.localeCompare(b, 'es'))
+    : [];
+
+  // Dupla comercial asociada al organizador elegido (dato informativo, no un filtro clickeable)
+  let duplaTexto = '';
+  if (exigeOrg) {
+    const duplas = [...new Set(D.production.filter(x => x.ORGANIZADOR === state.org).map(x => x.EJECUTIVO).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+    duplaTexto = duplas.length === 1 ? duplas[0] : (duplas.length > 1 ? duplas.join(' + ') + ' (compartido)' : '—');
+  }
+
+  $('#app').innerHTML = `<div class="top"><div><h1>Dashboard</h1><div class="sub">Visión ejecutiva de productores y producción</div></div><div class="filters"><select class="select" id="forg">${opts(organizadoresTodos, state.org)}</select><select class="select" id="fpas" ${exigeOrg ? '' : 'disabled'}>${exigeOrg ? opts(pasDisponibles, state.pasSel) : '<option>Elegí un organizador primero</option>'}</select>${exigeOrg ? `<span class="pill" style="align-self:center;white-space:nowrap">Dupla: ${esc(duplaTexto)}</span>` : ''}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">PAS en producción</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="label">Compañías</div><div class="num">${fmt(D.catalog.companias.length)}</div></div><div class="card kpi"><div class="label">Organizaciones</div><div class="num">${fmt(D.catalog.organizaciones.length)}</div></div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${Object.entries(ramo).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(Object.entries(ramo)) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>Top PAS</h3>${topP.map(([k, v], i) => `<div class="barrow"><span>${i + 1}. <span class="link" data-pas="${esc(k)}">${esc(k)}</span></span><div class="bar"><i style="width:${v / max(topP) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('')}</div></div><div class="grid two section"><div class="card"><h3>Top compañías</h3>${topC.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topC) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('')}</div><div class="card"><h3>Estado de la base</h3><div class="profile"><div class="field"><b>PAS totales</b>${fmt(D.producers.length)}</div><div class="field"><b>Con teléfono</b>${fmt(D.producers.filter(p => p.TELÉFONO).length)}</div><div class="field"><b>Con mail</b>${fmt(D.producers.filter(p => p.MAIL).length)}</div><div class="field"><b>Con organización</b>${fmt(D.producers.filter(p => p.ORGANIZACIÓN).length)}</div></div><p class="notice">Los filtros se aplican a la producción. La ficha individual consulta toda la información disponible.</p></div></div>`;
+  $('#forg').onchange = e => { state.org = e.target.value; state.pasSel = 'TODOS'; render() };
+  if (exigeOrg) $('#fpas').onchange = e => { state.pasSel = e.target.value; render() };
+  document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render() })
+}
+
+const FILAS_POR_PAGINA = 50;
+
+function productores() {
+  // Esto se dibuja UNA sola vez al entrar a la vista (el buscador no se vuelve a crear en cada letra)
+  state.pagina = 1;
+  const botonNuevo = puedeCrearPas() ? `<button class="btn-primary" id="btn-nuevo-pas">+ Nuevo PAS</button>` : '';
+  $('#app').innerHTML = `<div class="top"><div><h1>Productores</h1><div class="sub" id="prod-sub">Base de PAS</div></div><div style="display:flex;gap:10px;align-items:center"><input class="search" id="search" placeholder="Buscar PAS, organización, ejecutivo..." value="${esc(state.q)}">${botonNuevo}</div></div><div class="card"><div id="prod-tabla"></div></div>`;
+  $('#search').oninput = e => { state.q = e.target.value; state.pagina = 1; renderTablaProductores() };
+  if (puedeCrearPas()) document.getElementById('btn-nuevo-pas').onclick = () => abrirFormPAS(null);
+  renderTablaProductores();
+}
+
+function renderTablaProductores() {
+  let list = D.producers.filter(p => Object.values(p).join(' ').toLowerCase().includes(state.q.toLowerCase()));
+  list = list.slice().sort((a, b) => (a.PAS || '').localeCompare(b.PAS || '', 'es'));
+
+  const totalPaginas = Math.max(1, Math.ceil(list.length / FILAS_POR_PAGINA));
+  if (state.pagina > totalPaginas) state.pagina = totalPaginas;
+  if (state.pagina < 1) state.pagina = 1;
+  const desde = (state.pagina - 1) * FILAS_POR_PAGINA;
+  const pagina = list.slice(desde, desde + FILAS_POR_PAGINA);
+
+  $('#prod-sub').textContent = `Base de PAS · ${fmt(list.length)} resultados`;
+  $('#prod-tabla').innerHTML = `<div class="tablewrap"><table class="table"><thead><tr><th>PAS</th><th>Organización</th><th>Vinculante</th><th>Ejecutivo</th><th>Estado</th><th>Zona</th><th>Localidad</th><th>Pólizas vigentes</th></tr></thead><tbody>${pagina.map(p => `<tr><td class="link" data-pas="${esc(p.PAS)}">${esc(p.PAS)}</td><td>${esc(p.ORGANIZACIÓN)}</td><td>${esc(p.VINCULANTE)}</td><td>${esc(p.EJECUTIVO)}</td><td><span class="pill">${esc(p.ESTADO)}</span></td><td>${esc(p.ZONA)}</td><td>${esc(p['LOCALIDAD/PROV'])}</td><td>${fmt(p['CANTIDAD DE PÓLIZAS VIGENTES'])}</td></tr>`).join('') || `<tr><td colspan="8"><div class="empty">Sin resultados</div></td></tr>`}</tbody></table></div><div class="pagbar" style="display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:14px 4px 2px;font-size:12px;color:var(--muted)"><button class="back" id="pag-prev" ${state.pagina <= 1 ? 'disabled' : ''} style="${state.pagina <= 1 ? 'opacity:.5;cursor:default' : ''}">← Anterior</button><span>${state.pagina} de ${totalPaginas}</span><button class="back" id="pag-next" ${state.pagina >= totalPaginas ? 'disabled' : ''} style="${state.pagina >= totalPaginas ? 'opacity:.5;cursor:default' : ''}">Siguiente →</button><span style="display:flex;align-items:center;gap:5px;margin-left:8px"><span>Ir a:</span><input type="number" id="pag-input" min="1" max="${totalPaginas}" value="${state.pagina}" style="width:56px;padding:6px 7px"></span></div>`;
+
+  document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render() });
+  const prevBtn = document.getElementById('pag-prev');
+  const nextBtn = document.getElementById('pag-next');
+  const pagInput = document.getElementById('pag-input');
+  if (prevBtn) prevBtn.onclick = () => { if (state.pagina > 1) { state.pagina--; renderTablaProductores(); } };
+  if (nextBtn) nextBtn.onclick = () => { if (state.pagina < totalPaginas) { state.pagina++; renderTablaProductores(); } };
+  if (pagInput) {
+    const irAPagina = () => {
+      let n = parseInt(pagInput.value, 10);
+      if (isNaN(n)) return;
+      if (n < 1) n = 1;
+      if (n > totalPaginas) n = totalPaginas;
+      state.pagina = n;
+      renderTablaProductores();
+    };
+    pagInput.onkeydown = e => { if (e.key === 'Enter') irAPagina(); };
+    pagInput.onblur = irAPagina;
+  }
+}
+
+function ficha(pas) {
+  const p = D.producers.find(x => x.PAS === pas); const rows = D.production.filter(x => x.PAS === pas);
+  if (!p) { state.view = 'productores'; return render() }
+  const total = rows.reduce((s, x) => s + x.TOTAL, 0);
+  const comp = {}, ramo = {}, trim = {};
+  rows.forEach(x => { Object.entries(x.COMPANIAS).forEach(([c, v]) => comp[c] = (comp[c] || 0) + v); ramo[x.RAMO] = (ramo[x.RAMO] || 0) + x.TOTAL; trim[x.TRIMESTRE] = (trim[x.TRIMESTRE] || 0) + x.TOTAL });
+  const comps = Object.entries(comp).sort((a, b) => b[1] - a[1]); const ramos = Object.entries(ramo).sort((a, b) => b[1] - a[1]); const hist = Object.entries(trim).sort((a, b) => a[0].localeCompare(b[0]));
+  const permisoEdicion = puedeEditarPas(p);
+  const botonesAccion = permisoEdicion ? `<button class="btn-edit" id="btn-editar-pas">Editar datos</button><button class="btn-primary" id="btn-cargar-prod">+ Cargar producción</button>` : '';
+  $('#app').innerHTML = `<div class="top"><div><button class="back" id="back">← Productores</button><h1 style="margin-top:12px">${esc(p.PAS)}</h1><div class="sub">Ficha 360° del productor</div></div><div style="display:flex;gap:10px;align-self:flex-end">${botonesAccion}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(comps.length)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(ramos.length)}</div></div><div class="card kpi"><div class="label">Último trimestre cargado</div><div class="num" style="font-size:20px">${esc(hist.at(-1)?.[0] || '—')}</div></div></div><div class="grid two section"><div class="card"><h3>Datos del PAS</h3><div class="profile">${[['Organización', p.ORGANIZACIÓN], ['Vinculante', p.VINCULANTE], ['Ejecutivo', p.EJECUTIVO], ['Teléfono', p.TELÉFONO], ['Mail', p.MAIL], ['Estado', p.ESTADO], ['Zona', p.ZONA], ['Localidad / Prov.', p['LOCALIDAD/PROV']], ['Nacimiento', p['FECHA DE NACIMIENTO']], ['Observaciones', p.OBSERVACIONES]].map(([k, v]) => `<div class="field"><b>${esc(k)}</b>${esc(v || '—')}</div>`).join('')}</div></div><div class="card"><h3>Compañías con producción</h3>${comps.slice(0, 12).map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / (comps[0]?.[1] || 1) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${ramos.slice(0, 12).map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / (ramos[0]?.[1] || 1) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('')}</div><div class="card"><h3>Evolución trimestral</h3>${hist.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / (Math.max(...hist.map(x => x[1])) || 1) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin histórico</div>'}</div></div><div class="card section"><h3>Detalle de cargas</h3><div class="tablewrap"><table class="table"><thead><tr><th>Trimestre</th><th>Ramo</th><th>Total</th><th>Ejecutivo</th><th>Organizador</th></tr></thead><tbody>${rows.sort((a, b) => String(b.TRIMESTRE).localeCompare(String(a.TRIMESTRE))).map(x => `<tr><td>${esc(x.TRIMESTRE)}</td><td>${esc(x.RAMO)}</td><td>${fmt(x.TOTAL)}</td><td>${esc(x.EJECUTIVO)}</td><td>${esc(x.ORGANIZADOR)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  $('#back').onclick = () => { state.view = 'productores'; state.pas = null; render() };
+  if (permisoEdicion) {
+    document.getElementById('btn-editar-pas').onclick = () => abrirFormPAS(p);
+    document.getElementById('btn-cargar-prod').onclick = () => abrirFormProduccion(p);
+  }
+}
+
+/* ============== PUNTO DE ENTRADA ============== */
+(async function main() {
+  renderLoading('Iniciando...');
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    await iniciarApp();
+  } else {
+    renderLogin();
+  }
+})();
+</script>
+</body></html>

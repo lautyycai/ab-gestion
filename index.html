@@ -364,7 +364,7 @@ function abrirFormPAS(pasExistente) {
     <h2>${esEdicion ? 'Editar PAS' : 'Nuevo PAS'}</h2>
     <div class="modal-sub">${esEdicion ? esc(p.PAS) : 'Cargar un nuevo productor asesor de seguros'}</div>
     <div class="formgrid">
-      <div class="full"><label>PAS (nombre)</label><input id="f-pas" ${esEdicion ? 'readonly class="readonly"' : ''} value="${esc(p.PAS || '')}" placeholder="Nombre completo"></div>
+      <div class="full"><label>PAS (nombre)</label><input id="f-pas" value="${esc(p.PAS || '')}" placeholder="Nombre completo"></div>
       <div><label>Organización</label><input id="f-org" value="${esc(p.ORGANIZACIÓN || '')}"></div>
       <div><label>Vinculante</label><input id="f-vinc" value="${esc(p.VINCULANTE || '')}"></div>
       <div>
@@ -895,9 +895,20 @@ function renderTablaProductores() {
   const pagina = list.slice(desde, desde + FILAS_POR_PAGINA);
 
   $('#prod-sub').textContent = `Base de PAS · ${fmt(list.length)} resultados`;
-  $('#prod-tabla').innerHTML = `<div class="tablewrap"><table class="table"><thead><tr><th>PAS</th><th>Organización</th><th>Vinculante</th><th>Ejecutivo</th><th>Estado</th><th>Zona</th><th>Localidad</th><th>Pólizas vigentes</th></tr></thead><tbody>${pagina.map(p => `<tr><td class="link" data-pas="${esc(p.PAS)}">${esc(p.PAS)}</td><td>${esc(p.ORGANIZACIÓN)}</td><td>${esc(p.VINCULANTE)}</td><td>${esc(p.EJECUTIVO)}</td><td><span class="pill">${esc(p.ESTADO)}</span></td><td>${esc(p.ZONA)}</td><td>${esc(p['LOCALIDAD/PROV'])}</td><td>${fmt(p['CANTIDAD DE PÓLIZAS VIGENTES'])}</td></tr>`).join('') || `<tr><td colspan="8"><div class="empty">Sin resultados</div></td></tr>`}</tbody></table></div><div class="pagbar" style="display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:14px 4px 2px;font-size:12px;color:var(--muted)"><button class="back" id="pag-prev" ${state.pagina <= 1 ? 'disabled' : ''} style="${state.pagina <= 1 ? 'opacity:.5;cursor:default' : ''}">← Anterior</button><span>${state.pagina} de ${totalPaginas}</span><button class="back" id="pag-next" ${state.pagina >= totalPaginas ? 'disabled' : ''} style="${state.pagina >= totalPaginas ? 'opacity:.5;cursor:default' : ''}">Siguiente →</button><span style="display:flex;align-items:center;gap:5px;margin-left:8px"><span>Ir a:</span><input type="number" id="pag-input" min="1" max="${totalPaginas}" value="${state.pagina}" style="width:56px;padding:6px 7px"></span></div>`;
+  $('#prod-tabla').innerHTML = `<div class="tablewrap"><table class="table"><thead><tr><th>PAS</th><th>Organización</th><th>Vinculante</th><th>Ejecutivo</th><th>Estado</th><th>Zona</th><th>Localidad</th><th>Pólizas vigentes</th><th></th></tr></thead><tbody>${pagina.map(p => `<tr><td class="link" data-pas="${esc(p.PAS)}">${esc(p.PAS)}</td><td>${esc(p.ORGANIZACIÓN)}</td><td>${esc(p.VINCULANTE)}</td><td>${esc(p.EJECUTIVO)}</td><td><span class="pill">${esc(p.ESTADO)}</span></td><td>${esc(p.ZONA)}</td><td>${esc(p['LOCALIDAD/PROV'])}</td><td>${fmt(p['CANTIDAD DE PÓLIZAS VIGENTES'])}</td><td>${puedeEditarPas(p) ? `<button class="btn-del" data-eliminar-pas="${p._id}" data-nombre-pas="${esc(p.PAS)}" title="Eliminar PAS">×</button>` : ''}</td></tr>`).join('') || `<tr><td colspan="9"><div class="empty">Sin resultados</div></td></tr>`}</tbody></table></div><div class="pagbar" style="display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:14px 4px 2px;font-size:12px;color:var(--muted)"><button class="back" id="pag-prev" ${state.pagina <= 1 ? 'disabled' : ''} style="${state.pagina <= 1 ? 'opacity:.5;cursor:default' : ''}">← Anterior</button><span>${state.pagina} de ${totalPaginas}</span><button class="back" id="pag-next" ${state.pagina >= totalPaginas ? 'disabled' : ''} style="${state.pagina >= totalPaginas ? 'opacity:.5;cursor:default' : ''}">Siguiente →</button><span style="display:flex;align-items:center;gap:5px;margin-left:8px"><span>Ir a:</span><input type="number" id="pag-input" min="1" max="${totalPaginas}" value="${state.pagina}" style="width:56px;padding:6px 7px"></span></div>`;
 
   document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render() });
+  document.querySelectorAll('[data-eliminar-pas]').forEach(btn => {
+    btn.onclick = async () => {
+      const nombre = btn.dataset.nombrePas;
+      if (!confirm(`¿Eliminar el PAS "${nombre}"? Esta acción no se puede deshacer.`)) return;
+      btn.disabled = true;
+      const { error } = await supa.rpc('eliminar_pas', { p_pas_id: Number(btn.dataset.eliminarPas) });
+      if (error) { alert(error.message); btn.disabled = false; return; }
+      D = await cargarDatos();
+      renderTablaProductores();
+    };
+  });
   const prevBtn = document.getElementById('pag-prev');
   const nextBtn = document.getElementById('pag-next');
   const pagInput = document.getElementById('pag-input');

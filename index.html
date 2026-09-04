@@ -61,7 +61,7 @@ const fmtFecha = iso => {
 
 let D = null;       // datos ya transformados (mismo formato que usaba data.js)
 let perfil = null;  // { id, nombre_completo, rol, dupla_asignada }
-let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1, trimFicha: 'TODOS' };
+let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1, trimFicha: 'TODOS', chartCompania: null, chartRamo: null, chartEvo: 'TOTAL' };
 
 /* ============== PANTALLA DE CARGA ============== */
 function renderLoading(msg) {
@@ -174,6 +174,7 @@ async function cargarDatos() {
     'EJECUTIVO': r.ejecutivo,
     'ORGANIZADOR': r.organizador,
     'TOTAL': r.total_polizas,
+    'FECHA': r.ultima_fecha,
     'COMPANIAS': companiasPorProduccion[r.id] || {},
   }));
 
@@ -384,7 +385,7 @@ let filasCompaniaCount = 0;
 function abrirFormProduccion(p) {
   filasCompaniaCount = 0;
   const ramosOrdenados = [...D.catalog.ramos].sort((a, b) => a.localeCompare(b, 'es'));
-  const trimestresOrdenados = [...D.catalog.trimestres].sort((a, b) => a.localeCompare(b, 'es'));
+  const trimestresOrdenados = [...D.catalog.trimestres].sort((a, b) => trimestreOrden(a) - trimestreOrden(b));
   const hoy = new Date().toISOString().slice(0, 10);
 
   const html = `
@@ -408,21 +409,110 @@ function abrirFormProduccion(p) {
     </div>`;
   abrirModal(html);
   agregarFilaCompania();
-  document.getElementById('btn-add-compania').onclick = agregarFilaCompania;
+  document.getElementById('btn-add-compania').onclick = () => agregarFilaCompania();
   document.getElementById('btn-cancelar-prod').onclick = cerrarModal;
   document.getElementById('btn-guardar-prod').onclick = () => guardarProduccion(p);
 }
 
-function agregarFilaCompania() {
+function agregarFilaCompania(companiaExistente, cantidadExistente) {
   filasCompaniaCount++;
   const id = filasCompaniaCount;
   const companiasOrdenadas = [...D.catalog.companias].sort((a, b) => a.localeCompare(b, 'es'));
   const div = document.createElement('div');
   div.className = 'companiarow';
   div.id = `fila-comp-${id}`;
-  div.innerHTML = `<select id="fc-comp-${id}">${opts(companiasOrdenadas, 'TODOS')}</select><input id="fc-cant-${id}" type="number" min="0" placeholder="Cantidad"><button type="button" class="btn-del" data-fila="${id}">×</button>`;
+  div.innerHTML = `<select id="fc-comp-${id}">${opts(companiasOrdenadas, companiaExistente || 'TODOS')}</select><input id="fc-cant-${id}" type="number" min="0" placeholder="Cantidad" value="${cantidadExistente ?? ''}"><button type="button" class="btn-del" data-fila="${id}">×</button>`;
   document.getElementById('filas-compania').appendChild(div);
   div.querySelector('.btn-del').onclick = () => { const f = document.getElementById(`fila-comp-${id}`); if (f) f.remove(); };
+}
+
+/* ============== FORMULARIO: EDITAR PRODUCCIÓN (corregir una carga existente) ============== */
+function abrirFormEditarProduccion(prod) {
+  filasCompaniaCount = 0;
+  const ramosOrdenados = [...D.catalog.ramos].sort((a, b) => a.localeCompare(b, 'es'));
+  const trimestresOrdenados = [...D.catalog.trimestres].sort((a, b) => trimestreOrden(a) - trimestreOrden(b));
+  const fecha = prod.FECHA || new Date().toISOString().slice(0, 10);
+
+  const html = `
+    <h2>Editar producción</h2>
+    <div class="modal-sub">${esc(prod.PAS)} · ${esc(prod.EJECUTIVO || '')}</div>
+    <div class="formgrid">
+      <div><label>Ramo</label><select id="f-ramo">${opts(ramosOrdenados, prod.RAMO)}</select></div>
+      <div><label>Trimestre</label><select id="f-trim">${opts(trimestresOrdenados, prod.TRIMESTRE)}</select></div>
+      <div><label>Organizador</label><input id="f-organizador" value="${esc(prod.ORGANIZADOR || '')}"></div>
+      <div><label>Fecha</label><input id="f-fecha" type="date" value="${esc(fecha)}"></div>
+    </div>
+    <div class="section">
+      <label>Compañías y cantidad de pólizas</label>
+      <div id="filas-compania"></div>
+      <button type="button" class="btn-add" id="btn-add-compania">+ Agregar compañía</button>
+    </div>
+    <div id="form-prod-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-cancelar-prod">Cancelar</button>
+      <button class="btn-primary" id="btn-guardar-prod">Guardar cambios</button>
+    </div>`;
+  abrirModal(html);
+  const companiasExistentes = Object.entries(prod.COMPANIAS || {});
+  if (companiasExistentes.length === 0) agregarFilaCompania();
+  else companiasExistentes.forEach(([c, cant]) => agregarFilaCompania(c, cant));
+  document.getElementById('btn-add-compania').onclick = () => agregarFilaCompania();
+  document.getElementById('btn-cancelar-prod').onclick = cerrarModal;
+  document.getElementById('btn-guardar-prod').onclick = () => guardarEdicionProduccion(prod);
+}
+
+async function guardarEdicionProduccion(prod) {
+  const btn = document.getElementById('btn-guardar-prod');
+  const msg = document.getElementById('form-prod-msg');
+  msg.innerHTML = '';
+
+  const ramo = document.getElementById('f-ramo').value;
+  const trimestre = document.getElementById('f-trim').value;
+  const organizador = document.getElementById('f-organizador').value.trim();
+  const fecha = document.getElementById('f-fecha').value || null;
+  if (ramo === 'TODOS' || trimestre === 'TODOS') { msg.innerHTML = '<div class="formerr">Elegí ramo y trimestre.</div>'; return; }
+
+  const filas = Array.from(document.querySelectorAll('#filas-compania .companiarow'));
+  const detalle = [];
+  for (const fila of filas) {
+    const id = fila.id.replace('fila-comp-', '');
+    const comp = document.getElementById(`fc-comp-${id}`).value;
+    const cant = parseInt(document.getElementById(`fc-cant-${id}`).value, 10);
+    if (comp !== 'TODOS' && cant > 0) detalle.push({ compania: comp, cantidad: cant });
+  }
+  if (detalle.length === 0) { msg.innerHTML = '<div class="formerr">Agregá al menos una compañía con cantidad mayor a 0.</div>'; return; }
+
+  const total = detalle.reduce((s, d) => s + d.cantidad, 0);
+
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { error: errProd } = await supa.from('producciones').update({
+    ramo, trimestre, organizador, total_polizas: total, ultima_fecha: fecha,
+  }).eq('id', prod._id);
+
+  if (errProd) {
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+    msg.innerHTML = `<div class="formerr">No se pudo guardar: ${esc(errProd.message)}</div>`;
+    return;
+  }
+
+  const { error: errBorrar } = await supa.from('produccion_companias').delete().eq('produccion_id', prod._id);
+  if (errBorrar) {
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+    msg.innerHTML = `<div class="formerr">No se pudo actualizar el detalle de compañías: ${esc(errBorrar.message)}</div>`;
+    return;
+  }
+
+  const filasDetalle = detalle.map(d => ({ produccion_id: prod._id, compania: d.compania, cantidad: d.cantidad }));
+  const { error: errDet } = await supa.from('produccion_companias').insert(filasDetalle);
+
+  btn.disabled = false; btn.textContent = 'Guardar cambios';
+  if (errDet) {
+    msg.innerHTML = `<div class="formerr">Se actualizó la carga pero hubo un error con el detalle de compañías: ${esc(errDet.message)}</div>`;
+    return;
+  }
+  msg.innerHTML = '<div class="formok">Cambios guardados correctamente.</div>';
+  D = await cargarDatos();
+  setTimeout(() => { cerrarModal(); render(); }, 600);
 }
 
 async function guardarProduccion(p) {
@@ -478,6 +568,41 @@ const prodByPas = () => { const m = {}; D.production.forEach(x => m[x.PAS] = (m[
 const filteredProduction = () => D.production.filter(x => (state.org === 'TODOS' || x.ORGANIZADOR === state.org) && (state.pasSel === 'TODOS' || x.PAS === state.pasSel));
 function opts(arr, val) { return '<option value="TODOS">TODOS</option>' + arr.filter(Boolean).map(x => '<option value="' + esc(x) + '" ' + (x === val ? 'selected' : '') + '>' + esc(x) + '</option>').join('') }
 function nav() { document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.view === state.view)) }
+
+// Convierte un trimestre (ej. "T1 2026") en un número ordenable cronológicamente (año*10 + numero de trimestre)
+function trimestreOrden(t) {
+  const m = String(t).match(/T(\d)\D+(\d{4})/i);
+  if (!m) return 0;
+  return parseInt(m[2], 10) * 10 + parseInt(m[1], 10);
+}
+
+// Gráfico de líneas armado a mano en SVG (no hay librería de gráficos en el proyecto)
+function svgLineChart(labels, values) {
+  const w = 560, h = 180, pad = 32;
+  if (!labels.length || values.every(v => !v)) {
+    return '<div class="empty">Sin datos para mostrar</div>';
+  }
+  const max = Math.max(...values, 1);
+  const stepX = labels.length > 1 ? (w - 2 * pad) / (labels.length - 1) : 0;
+  const points = values.map((v, i) => ({
+    x: pad + i * stepX,
+    y: h - pad - (v / max) * (h - 2 * pad),
+    v
+  }));
+  const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+  const circles = points.map(p =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="var(--accent)"></circle>` +
+    `<text x="${p.x.toFixed(1)}" y="${(p.y - 8).toFixed(1)}" font-size="11" text-anchor="middle" fill="var(--ink)">${fmt(p.v)}</text>`
+  ).join('');
+  const xlabels = labels.map((l, i) =>
+    `<text x="${(pad + i * stepX).toFixed(1)}" y="${h - 8}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(l)}</text>`
+  ).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px" preserveAspectRatio="xMidYMid meet">
+    <line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" stroke="var(--line)"></line>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"></path>
+    ${circles}${xlabels}
+  </svg>`;
+}
 
 function render() {
   // Guardamos que elemento tenia el foco (y la posicion del cursor si era un input de texto) antes de redibujar
@@ -583,26 +708,67 @@ function ficha(pas) {
   const p = D.producers.find(x => x.PAS === pas);
   if (!p) { state.view = 'productores'; return render() }
 
-  if (fichaTrimPas !== pas) { state.trimFicha = 'TODOS'; fichaTrimPas = pas; }
+  if (fichaTrimPas !== pas) {
+    state.trimFicha = 'TODOS';
+    state.chartCompania = null;
+    state.chartRamo = null;
+    state.chartEvo = 'TOTAL';
+    fichaTrimPas = pas;
+  }
 
   const rowsCompletas = D.production.filter(x => x.PAS === pas);
-  const trimestresDelPas = [...new Set(rowsCompletas.map(x => x.TRIMESTRE))].sort((a, b) => String(b).localeCompare(String(a)));
+  const trimestresDelPas = [...new Set(rowsCompletas.map(x => x.TRIMESTRE))].sort((a, b) => trimestreOrden(b) - trimestreOrden(a));
   const rows = state.trimFicha === 'TODOS' ? rowsCompletas : rowsCompletas.filter(x => x.TRIMESTRE === state.trimFicha);
 
   const total = rows.reduce((s, x) => s + x.TOTAL, 0);
   const comp = {}, ramo = {}, trim = {};
   rows.forEach(x => { Object.entries(x.COMPANIAS).forEach(([c, v]) => comp[c] = (comp[c] || 0) + v); ramo[x.RAMO] = (ramo[x.RAMO] || 0) + x.TOTAL; });
   rowsCompletas.forEach(x => { trim[x.TRIMESTRE] = (trim[x.TRIMESTRE] || 0) + x.TOTAL; });
-  const comps = Object.entries(comp).sort((a, b) => b[1] - a[1]); const ramos = Object.entries(ramo).sort((a, b) => b[1] - a[1]); const hist = Object.entries(trim).sort((a, b) => a[0].localeCompare(b[0]));
+  const comps = Object.entries(comp).sort((a, b) => b[1] - a[1]); const ramos = Object.entries(ramo).sort((a, b) => b[1] - a[1]); const hist = Object.entries(trim).sort((a, b) => trimestreOrden(a[0]) - trimestreOrden(b[0]));
   const permisoEdicion = puedeEditarPas(p);
   const botonesAccion = permisoEdicion ? `<button class="btn-edit" id="btn-editar-pas">Editar datos</button><button class="btn-primary" id="btn-cargar-prod">+ Cargar producción</button>` : '';
   const selectorTrimestre = `<select class="select" id="fic-trim"><option value="TODOS" ${state.trimFicha === 'TODOS' ? 'selected' : ''}>Todos los trimestres</option>${trimestresDelPas.map(t => `<option value="${esc(t)}" ${t === state.trimFicha ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
-  $('#app').innerHTML = `<div class="top"><div><button class="back" id="back">← Productores</button><h1 style="margin-top:12px">${esc(p.PAS)}</h1><div class="sub">Ficha 360° del productor</div></div><div style="display:flex;gap:10px;align-items:center;align-self:flex-end">${selectorTrimestre}${botonesAccion}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas${state.trimFicha !== 'TODOS' ? ' (' + esc(state.trimFicha) + ')' : ''}</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(comps.length)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(ramos.length)}</div></div><div class="card kpi"><div class="label">Último trimestre cargado</div><div class="num" style="font-size:20px">${esc(hist.at(-1)?.[0] || '—')}</div></div></div><div class="grid two section"><div class="card"><h3>Datos del PAS</h3><div class="profile">${[['Organización', p.ORGANIZACIÓN], ['Vinculante', p.VINCULANTE], ['Ejecutivo', p.EJECUTIVO], ['Teléfono', p.TELÉFONO], ['Mail', p.MAIL], ['Estado', p.ESTADO], ['Zona', p.ZONA], ['Localidad / Prov.', p['LOCALIDAD/PROV']], ['Nacimiento', fmtFecha(p['FECHA DE NACIMIENTO'])], ['Observaciones', p.OBSERVACIONES]].map(([k, v]) => `<div class="field"><b>${esc(k)}</b>${esc(v || '—')}</div>`).join('')}</div></div><div class="card"><h3>Compañías con producción${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3>${comps.slice(0, 12).map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / (comps[0]?.[1] || 1) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3>${ramos.slice(0, 12).map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / (ramos[0]?.[1] || 1) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div><div class="card"><h3>Evolución trimestral</h3>${hist.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / (Math.max(...hist.map(x => x[1])) || 1) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin histórico</div>'}</div></div><div class="card section"><h3>Detalle de cargas${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3><div class="tablewrap"><table class="table"><thead><tr><th>Trimestre</th><th>Ramo</th><th>Total</th><th>Ejecutivo</th><th>Organizador</th></tr></thead><tbody>${rows.sort((a, b) => String(b.TRIMESTRE).localeCompare(String(a.TRIMESTRE))).map(x => `<tr><td>${esc(x.TRIMESTRE)}</td><td>${esc(x.RAMO)}</td><td>${fmt(x.TOTAL)}</td><td>${esc(x.EJECUTIVO)}</td><td>${esc(x.ORGANIZADOR)}</td></tr>`).join('') || `<tr><td colspan="5"><div class="empty">Sin cargas en este trimestre</div></td></tr>`}</tbody></table></div></div>`;
+
+  // Gráficos de tendencia: siempre sobre rowsCompletas (todo el histórico), sin importar el filtro de trimestre de arriba
+  const trimestresAsc = [...trimestresDelPas].reverse();
+  const compTotalCompleto = {}, ramoTotalCompleto = {};
+  rowsCompletas.forEach(x => { Object.entries(x.COMPANIAS).forEach(([c, v]) => compTotalCompleto[c] = (compTotalCompleto[c] || 0) + v); ramoTotalCompleto[x.RAMO] = (ramoTotalCompleto[x.RAMO] || 0) + x.TOTAL; });
+  const companiasDelPas = Object.entries(compTotalCompleto).sort((a, b) => b[1] - a[1]).map(([c]) => c);
+  const ramosDelPas = Object.entries(ramoTotalCompleto).sort((a, b) => b[1] - a[1]).filter(([r]) => r).map(([r]) => r);
+  if (!companiasDelPas.includes(state.chartCompania)) state.chartCompania = companiasDelPas[0] || null;
+  if (!ramosDelPas.includes(state.chartRamo)) state.chartRamo = ramosDelPas[0] || null;
+
+  const serieCompania = c => trimestresAsc.map(t => rowsCompletas.filter(x => x.TRIMESTRE === t).reduce((s, x) => s + (x.COMPANIAS[c] || 0), 0));
+  const serieRamo = r => trimestresAsc.map(t => rowsCompletas.filter(x => x.TRIMESTRE === t && x.RAMO === r).reduce((s, x) => s + (x.TOTAL || 0), 0));
+  const serieTotal = () => trimestresAsc.map(t => rowsCompletas.filter(x => x.TRIMESTRE === t).reduce((s, x) => s + (x.TOTAL || 0), 0));
+
+  const opcionesEvo = ['TOTAL', ...companiasDelPas.map(c => 'C:' + c), ...ramosDelPas.map(r => 'R:' + r)];
+  const etiquetaEvo = v => v === 'TOTAL' ? 'Total' : v.startsWith('C:') ? 'Compañía: ' + v.slice(2) : 'Ramo: ' + v.slice(2);
+  const datosEvo = state.chartEvo === 'TOTAL' ? serieTotal() : state.chartEvo.startsWith('C:') ? serieCompania(state.chartEvo.slice(2)) : state.chartEvo.startsWith('R:') ? serieRamo(state.chartEvo.slice(2)) : [];
+
+  const selectCompania = `<select class="select" id="fic-chart-comp">${companiasDelPas.map(c => `<option value="${esc(c)}" ${c === state.chartCompania ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`;
+  const selectRamo = `<select class="select" id="fic-chart-ramo">${ramosDelPas.map(r => `<option value="${esc(r)}" ${r === state.chartRamo ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select>`;
+  const selectEvo = `<select class="select" id="fic-chart-evo">${opcionesEvo.map(v => `<option value="${esc(v)}" ${v === state.chartEvo ? 'selected' : ''}>${esc(etiquetaEvo(v))}</option>`).join('')}</select>`;
+
+  const cardCompanias = companiasDelPas.length ? selectCompania + svgLineChart(trimestresAsc, serieCompania(state.chartCompania)) : '<div class="empty">Sin producción</div>';
+  const cardRamos = ramosDelPas.length ? selectRamo + svgLineChart(trimestresAsc, serieRamo(state.chartRamo)) : '<div class="empty">Sin producción</div>';
+  const cardEvo = selectEvo + svgLineChart(trimestresAsc, datosEvo);
+
+  $('#app').innerHTML = `<div class="top"><div><button class="back" id="back">← Productores</button><h1 style="margin-top:12px">${esc(p.PAS)}</h1><div class="sub">Ficha 360° del productor</div></div><div style="display:flex;gap:10px;align-items:center;align-self:flex-end">${selectorTrimestre}${botonesAccion}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas${state.trimFicha !== 'TODOS' ? ' (' + esc(state.trimFicha) + ')' : ''}</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(comps.length)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(ramos.length)}</div></div><div class="card kpi"><div class="label">Último trimestre cargado</div><div class="num" style="font-size:20px">${esc(hist.at(-1)?.[0] || '—')}</div></div></div><div class="grid two section"><div class="card"><h3>Datos del PAS</h3><div class="profile">${[['Organización', p.ORGANIZACIÓN], ['Vinculante', p.VINCULANTE], ['Ejecutivo', p.EJECUTIVO], ['Teléfono', p.TELÉFONO], ['Mail', p.MAIL], ['Estado', p.ESTADO], ['Zona', p.ZONA], ['Localidad / Prov.', p['LOCALIDAD/PROV']], ['Nacimiento', fmtFecha(p['FECHA DE NACIMIENTO'])], ['Observaciones', p.OBSERVACIONES]].map(([k, v]) => `<div class="field"><b>${esc(k)}</b>${esc(v || '—')}</div>`).join('')}</div></div><div class="card"><h3>Compañías con producción</h3>${cardCompanias}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${cardRamos}</div><div class="card"><h3>Evolución trimestral</h3>${cardEvo}</div></div><div class="card section"><h3>Detalle de cargas${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3><div class="tablewrap"><table class="table"><thead><tr><th>Trimestre</th><th>Ramo</th><th>Total</th><th>Ejecutivo</th><th>Organizador</th>${permisoEdicion ? '<th></th>' : ''}</tr></thead><tbody>${rows.sort((a, b) => trimestreOrden(b.TRIMESTRE) - trimestreOrden(a.TRIMESTRE)).map(x => `<tr><td>${esc(x.TRIMESTRE)}</td><td>${esc(x.RAMO)}</td><td>${fmt(x.TOTAL)}</td><td>${esc(x.EJECUTIVO)}</td><td>${esc(x.ORGANIZADOR)}</td>${permisoEdicion ? `<td><button class="btn-edit" data-editar-prod="${x._id}" title="Editar carga">✎</button></td>` : ''}</tr>`).join('') || `<tr><td colspan="${permisoEdicion ? 6 : 5}"><div class="empty">Sin cargas en este trimestre</div></td></tr>`}</tbody></table></div></div>`;
   $('#back').onclick = () => { state.view = 'productores'; state.pas = null; render() };
   $('#fic-trim').onchange = e => { state.trimFicha = e.target.value; render() };
+  if (companiasDelPas.length) document.getElementById('fic-chart-comp').onchange = e => { state.chartCompania = e.target.value; render() };
+  if (ramosDelPas.length) document.getElementById('fic-chart-ramo').onchange = e => { state.chartRamo = e.target.value; render() };
+  document.getElementById('fic-chart-evo').onchange = e => { state.chartEvo = e.target.value; render() };
   if (permisoEdicion) {
     document.getElementById('btn-editar-pas').onclick = () => abrirFormPAS(p);
     document.getElementById('btn-cargar-prod').onclick = () => abrirFormProduccion(p);
+    document.querySelectorAll('[data-editar-prod]').forEach(btn => {
+      btn.onclick = () => {
+        const prod = rows.find(x => String(x._id) === btn.dataset.editarProd);
+        if (prod) abrirFormEditarProduccion(prod);
+      };
+    });
   }
 }
 

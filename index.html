@@ -21,6 +21,10 @@
 .formgrid input,.formgrid select,.formgrid textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;color:var(--ink)}
 .formgrid .full{grid-column:1 / -1}
 .formgrid .readonly{background:#f8fafc;color:var(--muted)}
+.checklist{max-height:170px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin-top:6px;display:flex;flex-direction:column;gap:6px;background:#fff}
+.checklist label{display:flex;align-items:center;gap:8px;font-weight:400;font-size:13px;margin:0;color:var(--ink)}
+.checklist label input[type=checkbox]{width:auto;margin:0}
+.checklist .sinresultados{color:var(--muted);font-size:12px;padding:4px 0}
 .companiarow{display:grid;grid-template-columns:1fr 110px 34px;gap:8px;margin-bottom:8px;align-items:center}
 .btn-primary{border:0;background:var(--accent);color:#fff;padding:10px 16px;border-radius:9px;font-weight:700;cursor:pointer}
 .btn-primary:disabled{opacity:.6;cursor:default}
@@ -265,7 +269,7 @@ function abrirFormPAS(pasExistente) {
       <div><label>Estado</label><select id="f-estado">${opts(estadosOrdenados, p.ESTADO || 'TODOS')}</select></div>
       <div><label>Zona</label><select id="f-zona">${opts(zonasOrdenadas, p.ZONA || 'TODOS')}</select></div>
       <div class="full"><label>Localidad / Prov. <span style="font-weight:400;color:var(--muted)">(sugiere según la zona, pero podés escribir una nueva)</span></label><input id="f-loc" list="datalist-loc" value="${esc(p['LOCALIDAD/PROV'] || '')}"><datalist id="datalist-loc"></datalist></div>
-      <div class="full"><label>Compañías con las que opera</label><input id="f-comp" value="${esc(p['COMPAÑÍAS CON LAS QUE OPERA'] || '')}"></div>
+      <div class="full"><label>Compañías con las que opera</label><input id="f-comp-buscar" placeholder="Buscar compañía..."><div id="f-comp-lista" class="checklist"></div></div>
       <div class="full"><label>Observaciones</label><textarea id="f-obs" rows="2">${esc(p.OBSERVACIONES || '')}</textarea></div>
     </div>
     <div id="form-pas-msg"></div>
@@ -278,6 +282,25 @@ function abrirFormPAS(pasExistente) {
   document.getElementById('btn-guardar-pas').onclick = () => guardarPAS(esEdicion ? p._id : null);
   actualizarLocalidadesPorZona(p.ZONA || 'TODOS');
   document.getElementById('f-zona').onchange = e => actualizarLocalidadesPorZona(e.target.value);
+  poblarChecklistCompanias(p['COMPAÑÍAS CON LAS QUE OPERA'] || '');
+}
+
+// Arma la lista con checkbox de todas las compañías del catálogo, tildando las que el PAS ya tenía cargadas
+function poblarChecklistCompanias(valorExistente) {
+  const yaTenia = valorExistente.split(/[,\-\/]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+  const companiasOrdenadas = [...D.catalog.companias].sort((a, b) => a.localeCompare(b, 'es'));
+  const cont = document.getElementById('f-comp-lista');
+  cont.innerHTML = companiasOrdenadas.map(c => {
+    const marcado = yaTenia.includes(c.trim().toUpperCase());
+    return `<label data-nombre="${esc(c.toLowerCase())}"><input type="checkbox" value="${esc(c)}" ${marcado ? 'checked' : ''}>${esc(c)}</label>`;
+  }).join('') || '<div class="sinresultados">No hay compañías cargadas en el catálogo.</div>';
+
+  document.getElementById('f-comp-buscar').oninput = e => {
+    const q = e.target.value.trim().toLowerCase();
+    cont.querySelectorAll('label').forEach(l => {
+      l.style.display = l.dataset.nombre.includes(q) ? 'flex' : 'none';
+    });
+  };
 }
 
 // Arma la lista de localidades sugeridas para una zona, en base a lo que ya existe cargado en la base
@@ -308,7 +331,7 @@ async function guardarPAS(idExistente) {
     telefono: val('f-tel'),
     mail: val('f-mail'),
     fecha_nacimiento: val('f-fnac') || null,
-    companias_opera: val('f-comp'),
+    companias_opera: Array.from(document.querySelectorAll('#f-comp-lista input:checked')).map(cb => cb.value).join(', '),
     observaciones: val('f-obs'),
     estado: val('f-estado') === 'TODOS' ? '' : val('f-estado'),
     zona: val('f-zona') === 'TODOS' ? '' : val('f-zona'),

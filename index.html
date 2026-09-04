@@ -110,13 +110,28 @@ async function cargarPerfil() {
 }
 
 /* ============== CARGA Y TRANSFORMACIÓN DE DATOS ============== */
+// Supabase corta select('*') en 1000 filas por defecto: esto pagina hasta traer todo.
+const PAGE_SIZE = 1000;
+async function fetchAllRows(tabla) {
+  let filas = [];
+  let desde = 0;
+  while (true) {
+    const { data, error } = await supa.from(tabla).select('*').range(desde, desde + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    filas = filas.concat(data || []);
+    if (!data || data.length < PAGE_SIZE) break;
+    desde += PAGE_SIZE;
+  }
+  return { data: filas, error: null };
+}
+
 async function cargarDatos() {
   const [{ data: productoresRows, error: e1 }, { data: produccionesRows, error: e2 },
          { data: detalleRows, error: e3 }, { data: catalogoRows, error: e4 }] = await Promise.all([
-    supa.from('productores').select('*'),
-    supa.from('producciones').select('*'),
-    supa.from('produccion_companias').select('*'),
-    supa.from('catalogos').select('*'),
+    fetchAllRows('productores'),
+    fetchAllRows('producciones'),
+    fetchAllRows('produccion_companias'),
+    fetchAllRows('catalogos'),
   ]);
   if (e1 || e2 || e3 || e4) {
     console.error(e1, e2, e3, e4);

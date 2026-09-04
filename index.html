@@ -68,7 +68,7 @@ const fmtFecha = iso => {
 
 let D = null;       // datos ya transformados (mismo formato que usaba data.js)
 let perfil = null;  // { id, nombre_completo, rol, dupla_asignada }
-let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1, trimFicha: 'TODOS', chartCompania: null, chartRamo: null, chartEvo: 'TOTAL', cmpDim: 'ZONA', cmpSel: [] };
+let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1, trimFicha: 'TODOS', chartCompania: null, chartRamo: null, chartEvo: 'TOTAL', cmpDim: 'ZONA', cmpSel: [], cmpDesglose: null };
 
 /* ============== PANTALLA DE CARGA ============== */
 function renderLoading(msg) {
@@ -671,6 +671,21 @@ function rankingCompanias(filas, top = 8) {
   return Object.entries(acc).sort((a, b) => b[1] - a[1]).slice(0, top);
 }
 
+const TIPOS_DESGLOSE = [
+  { valor: 'PAS', etiqueta: 'PAS' },
+  { valor: 'RAMO', etiqueta: 'Ramos' },
+  { valor: 'COMPANIA', etiqueta: 'Compañías' },
+  { valor: 'ORGANIZACION', etiqueta: 'Organizaciones' },
+];
+
+function rankingParaTipo(tipo, filas) {
+  if (tipo === 'PAS') return rankingPorCampo(filas, 'PAS');
+  if (tipo === 'RAMO') return rankingPorCampo(filas, 'RAMO');
+  if (tipo === 'COMPANIA') return rankingCompanias(filas);
+  if (tipo === 'ORGANIZACION') return rankingPorCampo(filas, 'ORGANIZADOR');
+  return [];
+}
+
 function bloqueRanking(titulo, datos) {
   if (!datos.length) return `<div class="card"><h3>${esc(titulo)}</h3><div class="empty">Sin datos</div></div>`;
   const max = datos[0][1] || 1;
@@ -914,20 +929,17 @@ function comparar() {
 
   const series = state.cmpSel.map(valor => ({ label: valor, valores: serieComparar(state.cmpDim, valor, trimestresGlobal) }));
 
-  // Desglose por elemento elegido: ranking de PAS/ramos/compañías/organizaciones dentro de cada uno (se omite el que coincide con la dimensión elegida, sería trivial)
-  const desglose = state.cmpSel.map(valor => {
-    const filas = filasParaDimension(state.cmpDim, valor);
-    const bloques = [];
-    if (state.cmpDim !== 'PAS') bloques.push(bloqueRanking('PAS', rankingPorCampo(filas, 'PAS')));
-    if (state.cmpDim !== 'RAMO') bloques.push(bloqueRanking('Ramos', rankingPorCampo(filas, 'RAMO')));
-    if (state.cmpDim !== 'COMPANIA') bloques.push(bloqueRanking('Compañías', rankingCompanias(filas)));
-    if (state.cmpDim !== 'ORGANIZACION') bloques.push(bloqueRanking('Organizaciones', rankingPorCampo(filas, 'ORGANIZADOR')));
-    return `<div class="section"><h3 style="margin-bottom:12px">${esc(valor)}</h3><div class="grid two">${bloques.join('')}</div></div>`;
-  }).join('');
+  // Desglose: un solo selector (PAS/Ramos/Compañías/Organizaciones, se omite el que coincide con la dimensión elegida) aplicado a todos los elementos tildados
+  const opcionesDesglose = TIPOS_DESGLOSE.filter(d => d.valor !== state.cmpDim);
+  if (!opcionesDesglose.some(d => d.valor === state.cmpDesglose)) state.cmpDesglose = opcionesDesglose[0] ? opcionesDesglose[0].valor : null;
+  const selectDesglose = `<select class="select" id="cmp-desglose-tipo">${opcionesDesglose.map(d => `<option value="${d.valor}" ${d.valor === state.cmpDesglose ? 'selected' : ''}>${esc(d.etiqueta)}</option>`).join('')}</select>`;
+  const desglose = state.cmpSel.length ? `<div class="card section"><h3>Desglose</h3><div class="formgrid"><div class="full"><label>Ver ranking de</label>${selectDesglose}</div></div><div class="grid two section">${state.cmpSel.map(valor => bloqueRanking(valor, rankingParaTipo(state.cmpDesglose, filasParaDimension(state.cmpDim, valor)))).join('')}</div></div>` : '';
 
   $('#app').innerHTML = `<div class="top"><div><h1>Comparar</h1><div class="sub">Compará producción entre distintos elementos de la base</div></div></div><div class="grid two section"><div class="card"><h3>¿Qué querés comparar?</h3><div class="formgrid"><div class="full"><label>Dimensión</label>${selectDim}</div></div><div class="section"><label>Elegí hasta ${MAX_SELECCION_COMPARAR} — ${esc(dimActual.etiqueta.toLowerCase())}</label><input id="cmp-buscar" placeholder="Buscar..." value="${esc(textoBuscado)}"><div id="cmp-lista" class="checklist">${checklistItems}</div></div></div><div class="card"><h3>Evolución trimestral comparada</h3>${state.cmpSel.length ? svgMultiLineChart(trimestresGlobal, series) : '<div class="empty">Elegí al menos un elemento para comparar</div>'}</div></div>${desglose}`;
 
   document.getElementById('cmp-dim').onchange = e => { state.cmpDim = e.target.value; state.cmpSel = []; render(); };
+  const selectorDesglose = document.getElementById('cmp-desglose-tipo');
+  if (selectorDesglose) selectorDesglose.onchange = e => { state.cmpDesglose = e.target.value; render(); };
   document.querySelectorAll('#cmp-lista input[type=checkbox]').forEach(cb => {
     cb.onchange = () => {
       if (cb.checked) { if (!state.cmpSel.includes(cb.value)) state.cmpSel = [...state.cmpSel, cb.value]; }

@@ -1075,12 +1075,23 @@ function vistaReportes() {
   const filas = reportesCache.rows.slice().sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
   const pendientes = filas.filter(r => (r.estado || 'pendiente') === 'pendiente').length;
 
-  $('#app').innerHTML = `<div class="top"><div><h1>Reportes</h1><div class="sub">${fmt(filas.length)} recibidos · ${fmt(pendientes)} pendientes</div></div><button class="btn-secondary" id="btn-recargar-reportes">Recargar</button></div><div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Vista</th><th>Mensaje</th><th>Estado</th><th>Respuesta</th></tr></thead><tbody>${filas.map(r => {
+  $('#app').innerHTML = `<div class="top"><div><h1>Reportes</h1><div class="sub">${fmt(filas.length)} recibidos · ${fmt(pendientes)} pendientes</div></div><button class="btn-secondary" id="btn-recargar-reportes">Recargar</button></div><div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Vista</th><th>Mensaje</th><th>Estado</th><th>Respuesta</th><th></th></tr></thead><tbody>${filas.map(r => {
     const resuelto = (r.estado || 'pendiente') === 'resuelto';
-    return `<tr style="${resuelto ? 'color:var(--muted);background:#fafbfc' : ''}"><td>${esc(fmtFechaHora(r.creado_en))}</td><td>${esc(r.usuario_nombre || '—')}</td><td>${esc(r.vista || '—')}</td><td style="white-space:normal;max-width:380px">${esc(r.mensaje)}</td><td><select class="select" style="padding:5px 8px;font-size:11px" data-cambiar-estado="${r.id}">${ESTADOS_REPORTE.map(e => `<option value="${e.valor}" ${e.valor === (r.estado || 'pendiente') ? 'selected' : ''}>${esc(e.etiqueta)}</option>`).join('')}</select></td><td style="white-space:normal;max-width:220px">${r.respuesta ? `<div style="margin-bottom:4px">${esc(r.respuesta)}</div>` : ''}<button class="link" style="border:0;background:none;cursor:pointer;font-size:11px;padding:0" data-responder="${r.id}">${r.respuesta ? 'Editar respuesta' : 'Responder'}</button></td></tr>`;
-  }).join('') || `<tr><td colspan="6"><div class="empty">No hay reportes todavía</div></td></tr>`}</tbody></table></div></div>`;
+    return `<tr style="${resuelto ? 'color:var(--muted);background:#fafbfc' : ''}"><td>${esc(fmtFechaHora(r.creado_en))}</td><td>${esc(r.usuario_nombre || '—')}</td><td>${esc(r.vista || '—')}</td><td style="white-space:normal;max-width:380px">${esc(r.mensaje)}</td><td><select class="select" style="padding:5px 8px;font-size:11px" data-cambiar-estado="${r.id}">${ESTADOS_REPORTE.map(e => `<option value="${e.valor}" ${e.valor === (r.estado || 'pendiente') ? 'selected' : ''}>${esc(e.etiqueta)}</option>`).join('')}</select></td><td style="white-space:normal;max-width:220px">${r.respuesta ? `<div style="margin-bottom:4px">${esc(r.respuesta)}</div>` : ''}<button class="link" style="border:0;background:none;cursor:pointer;font-size:11px;padding:0" data-responder="${r.id}">${r.respuesta ? 'Editar respuesta' : 'Responder'}</button></td><td>${resuelto ? `<button class="btn-del" data-eliminar-reporte="${r.id}" title="Eliminar">×</button>` : ''}</td></tr>`;
+  }).join('') || `<tr><td colspan="7"><div class="empty">No hay reportes todavía</div></td></tr>`}</tbody></table></div></div>`;
 
   document.getElementById('btn-recargar-reportes').onclick = () => { reportesCache = null; render(); };
+  document.querySelectorAll('[data-eliminar-reporte]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('¿Eliminar este reporte? Esta acción no se puede deshacer.')) return;
+      const id = btn.dataset.eliminarReporte;
+      btn.disabled = true;
+      const { error } = await supa.from('reportes').delete().eq('id', id);
+      if (error) { alert('No se pudo eliminar: ' + error.message); btn.disabled = false; return; }
+      reportesCache.rows = reportesCache.rows.filter(r => String(r.id) !== id);
+      render();
+    };
+  });
   document.querySelectorAll('[data-cambiar-estado]').forEach(sel => {
     sel.onchange = async () => {
       const id = sel.dataset.cambiarEstado;

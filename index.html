@@ -260,10 +260,12 @@ function renderShell() {
           <button data-view="dashboard">▦ <span>Dashboard</span></button>
           <button data-view="productores">♙ <span>Productores</span></button>
           <button data-view="comparar">⇄ <span>Comparar</span></button>
-          <button data-view="perfil">🪪 <span>Perfil</span></button>
           <button data-view="mis-reportes">🔔 <span>Mis reportes</span></button>
           ${perfil.rol === 'admin' ? '<button data-view="reportes">✉ <span>Reportes</span></button><button data-view="usuarios">👤 <span>Usuarios</span></button>' : ''}
         </nav>
+        <div class="nav" style="flex:none">
+          <button data-view="perfil">📇 <span>Perfil</span></button>
+        </div>
         <div class="userbox">
           <b>${esc(perfil.nombre_completo || 'Usuario')}</b>
           <span class="rolpill">${esc(((ROLES_USUARIO.find(r => r.valor === perfil.rol) || {}).etiqueta || perfil.rol || '').toUpperCase())}</span>
@@ -815,7 +817,7 @@ const COLOR_COMPANIA = {
   'ALLIANZ': '#003781',
   'HDI': '#78BE20', 'HDI SEGUROS': '#78BE20',
   'SURA': '#003DA5',
-  'ATM': '#0F766E',
+  'ATM': '#8E1145',
   'DIGNA': '#D97706',
   'COOPERACIÓN SEGUROS': '#B71C1C', 'COOPERACION SEGUROS': '#B71C1C',
   'INTEGRITY': '#1E3A5F', 'INTEGRITY SEGUROS': '#1E3A5F',

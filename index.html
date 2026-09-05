@@ -84,6 +84,7 @@ let D = null;       // datos ya transformados (mismo formato que usaba data.js)
 let perfil = null;  // { id, nombre_completo, rol, dupla_asignada }
 let reportesCache = null; // { rows } o { error } — se carga bajo demanda al entrar a la vista Reportes
 let misReportesCache = null; // ídem, para la vista "Mis reportes" (filtrada a los propios)
+let usuariosCache = null; // { rows } o { error } — lista de usuarios existentes, para editar nombre/rol/dupla
 
 // Realtime: canal activo de cada vista + cuál de las dos tiene la suscripción viva (o null)
 let canalReportesAdmin = null;
@@ -284,6 +285,7 @@ function renderShell() {
     state.pas = null;
     if (b.dataset.view === 'reportes') reportesCache = null;
     if (b.dataset.view === 'mis-reportes') misReportesCache = null;
+    if (b.dataset.view === 'usuarios') usuariosCache = null;
     render();
   });
   document.getElementById('brand-home').onclick = () => { state.view = 'dashboard'; state.pas = null; render(); };
@@ -1251,7 +1253,8 @@ function vistaUsuarios() {
       <div class="modal-actions" style="justify-content:flex-start">
         <button class="btn-primary" id="btn-crear-usuario">Crear usuario</button>
       </div>
-    </div>`;
+    </div>
+    <div class="section" id="usuarios-lista-wrap"></div>`;
 
   const actualizarDuplaVisible = () => {
     document.getElementById('us-dupla-wrap').style.display = document.getElementById('us-rol').value === 'editor' ? 'block' : 'none';
@@ -1292,6 +1295,106 @@ function vistaUsuarios() {
       btn.disabled = false; btn.textContent = 'Crear usuario';
       msg.innerHTML = `<div class="formerr">Error de red: ${esc(err.message)}</div>`;
     }
+  };
+
+  renderListaUsuarios();
+}
+
+async function cargarUsuarios() {
+  const { data, error } = await supa.from('usuarios').select('*').order('nombre_completo', { ascending: true });
+  usuariosCache = error ? { error: error.message } : { rows: data || [] };
+  renderListaUsuarios();
+}
+
+function renderListaUsuarios() {
+  const wrap = document.getElementById('usuarios-lista-wrap');
+  if (!wrap) return;
+
+  if (usuariosCache === null) {
+    wrap.innerHTML = `<div class="card"><h3>Usuarios existentes</h3><div class="empty">Cargando...</div></div>`;
+    cargarUsuarios();
+    return;
+  }
+  if (usuariosCache.error) {
+    wrap.innerHTML = `<div class="card"><h3>Usuarios existentes</h3><div class="formerr">No se pudieron cargar: ${esc(usuariosCache.error)}</div></div>`;
+    return;
+  }
+
+  const filas = usuariosCache.rows;
+  wrap.innerHTML = `<div class="card"><h3>Usuarios existentes</h3><div class="tablewrap"><table class="table"><thead><tr><th>Nombre</th><th>Rol</th><th>Dupla</th><th></th></tr></thead><tbody>${filas.map(u => `<tr><td>${esc(u.nombre_completo || '—')}</td><td><span class="pill">${esc((u.rol || '').toUpperCase())}</span></td><td>${esc(u.dupla_asignada || '—')}</td><td><button class="btn-edit" data-editar-usuario="${u.id}">Editar</button>${u.id !== perfil.id ? ` <button class="btn-del" data-eliminar-usuario="${u.id}" data-nombre-usuario="${esc(u.nombre_completo || '')}" title="Eliminar usuario">×</button>` : ''}</td></tr>`).join('') || `<tr><td colspan="4"><div class="empty">No hay usuarios</div></td></tr>`}</tbody></table></div></div>`;
+
+  document.querySelectorAll('[data-editar-usuario]').forEach(btn => {
+    btn.onclick = () => {
+      const u = usuariosCache.rows.find(x => String(x.id) === btn.dataset.editarUsuario);
+      if (u) abrirModalEditarUsuario(u);
+    };
+  });
+  document.querySelectorAll('[data-eliminar-usuario]').forEach(btn => {
+    btn.onclick = async () => {
+      const nombre = btn.dataset.nombreUsuario;
+      if (!confirm(`¿Eliminar al usuario "${nombre}"? Esta acción no se puede deshacer.`)) return;
+      btn.disabled = true;
+      const { data: { session } } = await supa.auth.getSession();
+      try {
+        const resp = await fetch(URL_CREAR_USUARIO, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'eliminar', id: btn.dataset.eliminarUsuario }),
+        });
+        const result = await resp.json();
+        if (!resp.ok) { alert(result.error || 'No se pudo eliminar el usuario'); btn.disabled = false; return; }
+        usuariosCache = null;
+        cargarUsuarios();
+      } catch (err) {
+        alert('Error de red: ' + err.message);
+        btn.disabled = false;
+      }
+    };
+  });
+}
+
+function abrirModalEditarUsuario(u) {
+  const ejecutivosOrdenados = [...D.catalog.ejecutivos].sort((a, b) => a.localeCompare(b, 'es'));
+  const html = `
+    <h2>Editar usuario</h2>
+    <div class="modal-sub">${esc(u.nombre_completo || '')}</div>
+    <div class="formgrid">
+      <div class="full"><label>Nombre completo</label><input id="eu-nombre" value="${esc(u.nombre_completo || '')}"></div>
+      <div><label>Rol</label><select id="eu-rol"><option value="editor" ${u.rol === 'editor' ? 'selected' : ''}>Editor</option><option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>Admin</option></select></div>
+      <div id="eu-dupla-wrap"><label>Dupla asignada</label><select id="eu-dupla">${ejecutivosOrdenados.map(e => `<option value="${esc(e)}" ${e === u.dupla_asignada ? 'selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
+    </div>
+    <div id="eu-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-cancelar-eu">Cancelar</button>
+      <button class="btn-primary" id="btn-guardar-eu">Guardar cambios</button>
+    </div>`;
+  abrirModal(html);
+
+  const actualizarDuplaEu = () => {
+    document.getElementById('eu-dupla-wrap').style.display = document.getElementById('eu-rol').value === 'editor' ? 'block' : 'none';
+  };
+  document.getElementById('eu-rol').onchange = actualizarDuplaEu;
+  actualizarDuplaEu();
+
+  document.getElementById('btn-cancelar-eu').onclick = cerrarModal;
+  document.getElementById('btn-guardar-eu').onclick = async () => {
+    const btn = document.getElementById('btn-guardar-eu');
+    const msg = document.getElementById('eu-msg');
+    msg.innerHTML = '';
+    const nombre_completo = document.getElementById('eu-nombre').value.trim();
+    const rol = document.getElementById('eu-rol').value;
+    const dupla_asignada = rol === 'editor' ? document.getElementById('eu-dupla').value : null;
+
+    if (!nombre_completo) { msg.innerHTML = '<div class="formerr">El nombre no puede quedar vacío.</div>'; return; }
+    if (rol === 'editor' && !dupla_asignada) { msg.innerHTML = '<div class="formerr">Los editores necesitan una dupla asignada.</div>'; return; }
+
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const { error } = await supa.from('usuarios').update({ nombre_completo, rol, dupla_asignada }).eq('id', u.id);
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+    if (error) { msg.innerHTML = `<div class="formerr">No se pudo guardar: ${esc(error.message)}</div>`; return; }
+    msg.innerHTML = '<div class="formok">Guardado correctamente.</div>';
+    usuariosCache = null;
+    setTimeout(() => { cerrarModal(); cargarUsuarios(); }, 500);
   };
 }
 

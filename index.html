@@ -3,6 +3,8 @@
 /* dashboard: iconos, medallas y barras con color por fila */
 .kpi-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
 .kpi-icon svg{width:17px;height:17px}
+.brand-logo{background:#fff;border-radius:10px;padding:10px 14px;margin:0 12px 18px;display:flex;justify-content:center}
+.brand-logo img{max-width:100%;height:auto;display:block}
 .card h3{display:flex;align-items:center;gap:8px}
 .card h3 svg{flex:none;width:16px;height:16px;color:var(--muted)}
 .barrow:hover{background:#f8fafc;border-radius:8px}
@@ -251,6 +253,7 @@ function renderShell() {
     <div class="app">
       <aside class="side">
         <div class="brand" id="brand-home" style="cursor:pointer">AB Gestión<span>●</span></div>
+        <div class="brand-logo"><img src="logo.png" alt="Grupo Alonso+Bernardi"></div>
         <nav class="nav">
           <button data-view="dashboard">▦ <span>Dashboard</span></button>
           <button data-view="productores">♙ <span>Productores</span></button>
@@ -1242,7 +1245,7 @@ function vistaUsuarios() {
         <div class="full"><label>Email</label><input id="us-email" type="email" placeholder="usuario@abgestion.sistema"></div>
         <div class="full"><label>Contraseña temporal</label><input id="us-pass" type="text" placeholder="Mínimo 6 caracteres"></div>
         <div><label>Rol</label><select id="us-rol"><option value="editor">Editor</option><option value="admin">Admin</option></select></div>
-        <div id="us-dupla-wrap"><label>Dupla asignada</label><input id="us-dupla" placeholder="Ej: DIAZ ELVIO MAXIMILIANO"></div>
+        <div id="us-dupla-wrap"><label>Dupla asignada</label><select id="us-dupla"><option value="" disabled selected>Elegí una dupla</option>${[...D.catalog.ejecutivos].sort((a, b) => a.localeCompare(b, 'es')).map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join('')}</select></div>
       </div>
       <div id="us-msg"></div>
       <div class="modal-actions" style="justify-content:flex-start">
@@ -1264,7 +1267,7 @@ function vistaUsuarios() {
     const email = document.getElementById('us-email').value.trim();
     const password = document.getElementById('us-pass').value;
     const rol = document.getElementById('us-rol').value;
-    const dupla_asignada = document.getElementById('us-dupla').value.trim();
+    const dupla_asignada = document.getElementById('us-dupla').value;
 
     if (!nombre_completo || !email || !password) { msg.innerHTML = '<div class="formerr">Completá nombre, email y contraseña.</div>'; return; }
     if (rol === 'editor' && !dupla_asignada) { msg.innerHTML = '<div class="formerr">Los editores necesitan una dupla asignada.</div>'; return; }
@@ -1284,7 +1287,7 @@ function vistaUsuarios() {
       document.getElementById('us-nombre').value = '';
       document.getElementById('us-email').value = '';
       document.getElementById('us-pass').value = '';
-      document.getElementById('us-dupla').value = '';
+      document.getElementById('us-dupla').selectedIndex = 0;
     } catch (err) {
       btn.disabled = false; btn.textContent = 'Crear usuario';
       msg.innerHTML = `<div class="formerr">Error de red: ${esc(err.message)}</div>`;

@@ -85,6 +85,7 @@ let perfil = null;  // { id, nombre_completo, rol, dupla_asignada }
 let reportesCache = null; // { rows } o { error } — se carga bajo demanda al entrar a la vista Reportes
 let misReportesCache = null; // ídem, para la vista "Mis reportes" (filtrada a los propios)
 let usuariosCache = null; // { rows } o { error } — lista de usuarios existentes, para editar nombre/rol/dupla
+let perfilesCache = null; // { rows } o { error } — usuarios con dupla, para que admin/jefe elijan de quién ver el Perfil
 
 // Realtime: canal activo de cada vista + cuál de las dos tiene la suscripción viva (o null)
 let canalReportesAdmin = null;
@@ -97,7 +98,7 @@ function desuscribirReportes() {
   if (vistaConSuscripcion === 'mis-reportes' && canalMisReportes) { supa.removeChannel(canalMisReportes); canalMisReportes = null; }
   vistaConSuscripcion = null;
 }
-let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1, trimFicha: 'TODOS', chartCompania: null, chartRamo: null, chartEvo: 'TOTAL', cmpDim: 'ZONA', cmpSel: [], cmpDesglose: null };
+let state = { view: 'dashboard', org: 'TODOS', pasSel: 'TODOS', q: '', pas: null, pagina: 1, trimFicha: 'TODOS', chartCompania: null, chartRamo: null, chartEvo: 'TOTAL', cmpDim: 'ZONA', cmpSel: [], cmpDesglose: null, perfilObjetivoId: null };
 
 /* ============== PANTALLA DE CARGA ============== */
 function renderLoading(msg) {
@@ -259,6 +260,7 @@ function renderShell() {
           <button data-view="dashboard">▦ <span>Dashboard</span></button>
           <button data-view="productores">♙ <span>Productores</span></button>
           <button data-view="comparar">⇄ <span>Comparar</span></button>
+          <button data-view="perfil">🪪 <span>Perfil</span></button>
           <button data-view="mis-reportes">🔔 <span>Mis reportes</span></button>
           ${perfil.rol === 'admin' ? '<button data-view="reportes">✉ <span>Reportes</span></button><button data-view="usuarios">👤 <span>Usuarios</span></button>' : ''}
         </nav>
@@ -286,6 +288,7 @@ function renderShell() {
     if (b.dataset.view === 'reportes') reportesCache = null;
     if (b.dataset.view === 'mis-reportes') misReportesCache = null;
     if (b.dataset.view === 'usuarios') usuariosCache = null;
+    if (b.dataset.view === 'perfil') perfilesCache = null;
     render();
   });
   document.getElementById('brand-home').onclick = () => { state.view = 'dashboard'; state.pas = null; render(); };
@@ -832,7 +835,7 @@ function render() {
   if (vistaConSuscripcion && vistaConSuscripcion !== state.view) desuscribirReportes();
 
   nav();
-  if (state.view === 'dashboard') dashboard(); else if (state.view === 'productores') productores(); else if (state.view === 'comparar') comparar(); else if (state.view === 'reportes') vistaReportes(); else if (state.view === 'mis-reportes') vistaMisReportes(); else if (state.view === 'usuarios') vistaUsuarios(); else ficha(state.pas);
+  if (state.view === 'dashboard') dashboard(); else if (state.view === 'productores') productores(); else if (state.view === 'comparar') comparar(); else if (state.view === 'reportes') vistaReportes(); else if (state.view === 'mis-reportes') vistaMisReportes(); else if (state.view === 'usuarios') vistaUsuarios(); else if (state.view === 'perfil') vistaPerfil(); else ficha(state.pas);
 
   // Le devolvemos el foco al elemento que lo tenia (ahora es un elemento nuevo, pero con el mismo id)
   if (activoId) {
@@ -1425,6 +1428,80 @@ function abrirModalEditarUsuario(u) {
     usuariosCache = null;
     setTimeout(() => { cerrarModal(); cargarUsuarios(); }, 500);
   };
+}
+
+/* ============== PERFIL: estadísticas de la dupla del usuario (o de quien elija admin/jefe) ============== */
+async function cargarPerfilesUsuarios() {
+  const { data, error } = await supa.from('usuarios').select('*').order('nombre_completo', { ascending: true });
+  perfilesCache = error ? { error: error.message } : { rows: (data || []).filter(u => u.dupla_asignada) };
+  renderVistaPerfil();
+}
+
+function vistaPerfil() {
+  const puedeVerOtros = perfil.rol === 'admin' || perfil.rol === 'jefe';
+  if (puedeVerOtros && perfilesCache === null) {
+    $('#app').innerHTML = `<div class="top"><div><h1>Perfil</h1></div></div><div class="loading">Cargando...</div>`;
+    cargarPerfilesUsuarios();
+    return;
+  }
+  renderVistaPerfil();
+}
+
+function renderVistaPerfil() {
+  const puedeVerOtros = perfil.rol === 'admin' || perfil.rol === 'jefe';
+  const tieneDupla = perfil.rol === 'editor' || perfil.rol === 'carga_pas';
+
+  let duplaObjetivo = null;
+  let nombreObjetivo = perfil.nombre_completo || '';
+  let selectorHtml = '';
+
+  if (puedeVerOtros) {
+    if (perfilesCache && perfilesCache.error) {
+      $('#app').innerHTML = `<div class="top"><div><h1>Perfil</h1></div></div><div class="card"><div class="formerr">No se pudieron cargar los usuarios: ${esc(perfilesCache.error)}</div></div>`;
+      return;
+    }
+    const opciones = (perfilesCache && perfilesCache.rows) || [];
+    if (!state.perfilObjetivoId && opciones.length) state.perfilObjetivoId = opciones[0].id;
+    const elegido = opciones.find(u => u.id === state.perfilObjetivoId);
+    duplaObjetivo = elegido ? elegido.dupla_asignada : null;
+    nombreObjetivo = elegido ? elegido.nombre_completo : '';
+    selectorHtml = `<div class="card section"><div class="formgrid"><div class="full"><label>Ver perfil de</label><select id="perfil-selector">${opciones.map(u => `<option value="${u.id}" ${u.id === state.perfilObjetivoId ? 'selected' : ''}>${esc(u.nombre_completo)} (${esc(u.dupla_asignada)})</option>`).join('') || '<option>No hay usuarios con dupla asignada</option>'}</select></div></div></div>`;
+  } else if (tieneDupla) {
+    duplaObjetivo = perfil.dupla_asignada;
+  }
+
+  const cuerpo = duplaObjetivo
+    ? renderEstadisticasDupla(duplaObjetivo)
+    : '<div class="card"><div class="empty">Este perfil no tiene una dupla asociada, no hay estadísticas de producción para mostrar.</div></div>';
+
+  $('#app').innerHTML = `<div class="top"><div><h1>Perfil</h1><div class="sub">${esc(nombreObjetivo)}${duplaObjetivo ? ' · ' + esc(duplaObjetivo) : ''}</div></div></div>${selectorHtml}${cuerpo}`;
+
+  if (puedeVerOtros) {
+    const sel = document.getElementById('perfil-selector');
+    if (sel) sel.onchange = e => { state.perfilObjetivoId = e.target.value; renderVistaPerfil(); };
+  }
+  document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render(); });
+}
+
+function renderEstadisticasDupla(dupla) {
+  const rows = D.production.filter(x => x.EJECUTIVO === dupla);
+  const total = rows.reduce((s, x) => s + (x.TOTAL || 0), 0);
+  const pasSet = new Set(rows.map(x => x.PAS));
+  const ramo = {}, comp = {}, trim = {}, porPas = {};
+  rows.forEach(x => {
+    ramo[x.RAMO] = (ramo[x.RAMO] || 0) + x.TOTAL;
+    Object.entries(x.COMPANIAS).forEach(([c, v]) => comp[c] = (comp[c] || 0) + v);
+    trim[x.TRIMESTRE] = (trim[x.TRIMESTRE] || 0) + x.TOTAL;
+    porPas[x.PAS] = (porPas[x.PAS] || 0) + x.TOTAL;
+  });
+  const topRamo = Object.entries(ramo).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const topComp = Object.entries(comp).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const topPas = Object.entries(porPas).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const trimestresAsc = [...new Set(rows.map(x => x.TRIMESTRE))].sort((a, b) => trimestreOrden(a) - trimestreOrden(b));
+  const serieTotal = trimestresAsc.map(t => rows.filter(x => x.TRIMESTRE === t).reduce((s, x) => s + (x.TOTAL || 0), 0));
+  const max = a => Math.max(...a.map(x => x[1]), 1);
+
+  return `<div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">PAS a cargo</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(topRamo.length)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(topComp.length)}</div></div></div><div class="grid two section"><div class="card"><h3>Top PAS</h3>${topPas.map(([k, v]) => `<div class="barrow"><span class="link" data-pas="${esc(k)}">${esc(k)}</span><div class="bar"><i style="width:${v / max(topPas) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div><div class="card"><h3>Evolución trimestral</h3>${svgLineChart(trimestresAsc, serieTotal)}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${topRamo.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topRamo) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>Top compañías</h3>${topComp.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topComp) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div></div>`;
 }
 
 /* ============== PUNTO DE ENTRADA ============== */

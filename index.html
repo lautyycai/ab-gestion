@@ -54,6 +54,7 @@
 const SUPABASE_URL = "https://miyiqasxcvnnzoyumzqd.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_2k9VMCy53CwqNhGancX-Yg_n4xPkyfc";
 const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const URL_CREAR_USUARIO = "https://round-wood-6533.lautibagnato.workers.dev";
 
 const root = document.getElementById('root');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -255,7 +256,7 @@ function renderShell() {
           <button data-view="productores">♙ <span>Productores</span></button>
           <button data-view="comparar">⇄ <span>Comparar</span></button>
           <button data-view="mis-reportes">🔔 <span>Mis reportes</span></button>
-          ${perfil.rol === 'admin' ? '<button data-view="reportes">✉ <span>Reportes</span></button>' : ''}
+          ${perfil.rol === 'admin' ? '<button data-view="reportes">✉ <span>Reportes</span></button><button data-view="usuarios">👤 <span>Usuarios</span></button>' : ''}
         </nav>
         <div class="userbox">
           <b>${esc(perfil.nombre_completo || 'Usuario')}</b>
@@ -811,7 +812,7 @@ function render() {
   if (vistaConSuscripcion && vistaConSuscripcion !== state.view) desuscribirReportes();
 
   nav();
-  if (state.view === 'dashboard') dashboard(); else if (state.view === 'productores') productores(); else if (state.view === 'comparar') comparar(); else if (state.view === 'reportes') vistaReportes(); else if (state.view === 'mis-reportes') vistaMisReportes(); else ficha(state.pas);
+  if (state.view === 'dashboard') dashboard(); else if (state.view === 'productores') productores(); else if (state.view === 'comparar') comparar(); else if (state.view === 'reportes') vistaReportes(); else if (state.view === 'mis-reportes') vistaMisReportes(); else if (state.view === 'usuarios') vistaUsuarios(); else ficha(state.pas);
 
   // Le devolvemos el foco al elemento que lo tenia (ahora es un elemento nuevo, pero con el mismo id)
   if (activoId) {
@@ -1227,6 +1228,68 @@ function vistaMisReportes() {
   $('#app').innerHTML = `<div class="top"><div><h1>Mis reportes</h1><div class="sub">${fmt(filas.length)} enviados</div></div><button class="btn-secondary" id="btn-recargar-mis-reportes">Recargar</button></div>${filas.map(r => `<div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="sub">${esc(fmtFechaHora(r.creado_en))} · ${esc(r.vista || '—')}</span>${pillSemaforo(r.estado || 'pendiente')}</div><p style="margin:10px 0 0">${esc(r.mensaje)}</p>${r.respuesta ? `<div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:13px"><b style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">Respuesta</b>${esc(r.respuesta)}</div>` : ''}</div>`).join('') || '<div class="card"><div class="empty">Todavía no mandaste ningún reporte</div></div>'}`;
 
   document.getElementById('btn-recargar-mis-reportes').onclick = () => { misReportesCache = null; render(); };
+}
+
+/* ============== USUARIOS (solo admin): crear cuentas nuevas vía Cloudflare Worker ============== */
+function vistaUsuarios() {
+  if (perfil.rol !== 'admin') { state.view = 'dashboard'; return render(); }
+
+  $('#app').innerHTML = `<div class="top"><div><h1>Usuarios</h1><div class="sub">Crear cuentas nuevas para acceder a la app</div></div></div>
+    <div class="card" style="max-width:520px">
+      <h3>Nuevo usuario</h3>
+      <div class="formgrid">
+        <div class="full"><label>Nombre completo</label><input id="us-nombre" placeholder="Nombre y apellido"></div>
+        <div class="full"><label>Email</label><input id="us-email" type="email" placeholder="usuario@abgestion.sistema"></div>
+        <div class="full"><label>Contraseña temporal</label><input id="us-pass" type="text" placeholder="Mínimo 6 caracteres"></div>
+        <div><label>Rol</label><select id="us-rol"><option value="editor">Editor</option><option value="admin">Admin</option></select></div>
+        <div id="us-dupla-wrap"><label>Dupla asignada</label><input id="us-dupla" placeholder="Ej: DIAZ ELVIO MAXIMILIANO"></div>
+      </div>
+      <div id="us-msg"></div>
+      <div class="modal-actions" style="justify-content:flex-start">
+        <button class="btn-primary" id="btn-crear-usuario">Crear usuario</button>
+      </div>
+    </div>`;
+
+  const actualizarDuplaVisible = () => {
+    document.getElementById('us-dupla-wrap').style.display = document.getElementById('us-rol').value === 'editor' ? 'block' : 'none';
+  };
+  document.getElementById('us-rol').onchange = actualizarDuplaVisible;
+  actualizarDuplaVisible();
+
+  document.getElementById('btn-crear-usuario').onclick = async () => {
+    const btn = document.getElementById('btn-crear-usuario');
+    const msg = document.getElementById('us-msg');
+    msg.innerHTML = '';
+    const nombre_completo = document.getElementById('us-nombre').value.trim();
+    const email = document.getElementById('us-email').value.trim();
+    const password = document.getElementById('us-pass').value;
+    const rol = document.getElementById('us-rol').value;
+    const dupla_asignada = document.getElementById('us-dupla').value.trim();
+
+    if (!nombre_completo || !email || !password) { msg.innerHTML = '<div class="formerr">Completá nombre, email y contraseña.</div>'; return; }
+    if (rol === 'editor' && !dupla_asignada) { msg.innerHTML = '<div class="formerr">Los editores necesitan una dupla asignada.</div>'; return; }
+
+    btn.disabled = true; btn.textContent = 'Creando...';
+    const { data: { session } } = await supa.auth.getSession();
+    try {
+      const resp = await fetch(URL_CREAR_USUARIO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ email, password, nombre_completo, rol, dupla_asignada }),
+      });
+      const result = await resp.json();
+      btn.disabled = false; btn.textContent = 'Crear usuario';
+      if (!resp.ok) { msg.innerHTML = `<div class="formerr">${esc(result.error || 'No se pudo crear el usuario')}</div>`; return; }
+      msg.innerHTML = '<div class="formok">Usuario creado correctamente.</div>';
+      document.getElementById('us-nombre').value = '';
+      document.getElementById('us-email').value = '';
+      document.getElementById('us-pass').value = '';
+      document.getElementById('us-dupla').value = '';
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Crear usuario';
+      msg.innerHTML = `<div class="formerr">Error de red: ${esc(err.message)}</div>`;
+    }
+  };
 }
 
 /* ============== PUNTO DE ENTRADA ============== */

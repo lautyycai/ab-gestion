@@ -796,6 +796,66 @@ function bloqueRanking(titulo, datos) {
 
 const PALETA_COMPARAR = ['#2563eb', '#0f766e', '#dc2626', '#d97706', '#7c3aed', '#db2777'];
 
+// Colores que se acercan a la identidad visual de compañías de seguros conocidas (mejor esfuerzo,
+// no verificados al pixel — avisen si alguno no corresponde y se ajusta). Para el resto, se genera
+// un color estable a partir del nombre, así siempre le toca el mismo color a la misma compañía.
+const COLOR_COMPANIA = {
+  'SANCOR': '#00833E', 'SANCOR SEGUROS': '#00833E',
+  'PROVINCIA': '#2E7D32', 'PROVINCIA SEGUROS': '#2E7D32',
+  'MERCANTIL ANDINA': '#003DA5',
+  'FEDERACIÓN PATRONAL': '#1B3F8B', 'FEDERACION PATRONAL': '#1B3F8B',
+  'RIVADAVIA': '#E30613', 'RIVADAVIA SEGUROS': '#E30613',
+  'LA CAJA': '#F7941E', 'LA CAJA SEGUROS': '#F7941E',
+  'NACIÓN': '#75AADB', 'NACION': '#75AADB', 'NACIÓN SEGUROS': '#75AADB', 'NACION SEGUROS': '#75AADB',
+  'GALENO': '#8DC63F',
+  'EXPERTA': '#6A1B9A', 'EXPERTA SEGUROS': '#6A1B9A',
+  'RUS': '#004C97', 'RIO URUGUAY SEGUROS': '#004C97', 'RÍO URUGUAY SEGUROS': '#004C97',
+  'SAN CRISTOBAL': '#1565C0', 'SAN CRISTÓBAL': '#1565C0',
+  'ZURICH': '#0066B3',
+  'ALLIANZ': '#003781',
+  'HDI': '#78BE20', 'HDI SEGUROS': '#78BE20',
+  'SURA': '#003DA5',
+  'ATM': '#0F766E',
+  'DIGNA': '#D97706',
+  'COOPERACIÓN SEGUROS': '#B71C1C', 'COOPERACION SEGUROS': '#B71C1C',
+  'INTEGRITY': '#1E3A5F', 'INTEGRITY SEGUROS': '#1E3A5F',
+  'TRIUNFO': '#C62828', 'TRIUNFO SEGUROS': '#C62828',
+  'ORBIS': '#00838F', 'ORBIS SEGUROS': '#00838F',
+};
+const PALETA_FALLBACK_COMPANIA = ['#2563eb', '#0f766e', '#dc2626', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#c026d3', '#ea580c'];
+function colorParaCompania(nombre) {
+  const clave = String(nombre || '').toUpperCase().trim();
+  if (COLOR_COMPANIA[clave]) return COLOR_COMPANIA[clave];
+  let hash = 0;
+  for (let i = 0; i < clave.length; i++) hash = (hash * 31 + clave.charCodeAt(i)) >>> 0;
+  return PALETA_FALLBACK_COMPANIA[hash % PALETA_FALLBACK_COMPANIA.length];
+}
+
+// Gráfico de barras horizontales apiladas: una fila por ramo, coloreada por compañía
+function svgBarrasRamoCompania(ramoCompaniaMatrix, ramosOrdenados) {
+  const filaAltura = 32, pad = 8, anchoBarra = 460, xBarra = 150, w = 700;
+  const h = ramosOrdenados.length * filaAltura + pad * 2;
+  if (!ramosOrdenados.length) return '<div class="empty">Sin datos para mostrar</div>';
+  const maxRamoTotal = Math.max(...ramosOrdenados.map(r => Object.values(ramoCompaniaMatrix[r] || {}).reduce((s, v) => s + v, 0)), 1);
+
+  const filas = ramosOrdenados.map((ramo, i) => {
+    const y = pad + i * filaAltura;
+    const companias = Object.entries(ramoCompaniaMatrix[ramo] || {}).sort((a, b) => b[1] - a[1]);
+    const totalRamo = companias.reduce((s, [, v]) => s + v, 0);
+    let x = xBarra;
+    const segmentos = companias.map(([comp, valor]) => {
+      const ancho = Math.max((valor / maxRamoTotal) * anchoBarra, 1);
+      const seg = `<rect x="${x.toFixed(1)}" y="${y}" width="${ancho.toFixed(1)}" height="${filaAltura - 10}" fill="${colorParaCompania(comp)}" rx="2"><title>${esc(ramo)} · ${esc(comp)}: ${fmt(valor)}</title></rect>`;
+      x += ancho;
+      return seg;
+    }).join('');
+    const yTexto = y + (filaAltura - 10) / 2 + 4;
+    return `<text x="0" y="${yTexto}" font-size="11" fill="var(--ink)">${esc(ramo)}</text>${segmentos}<text x="${(x + 6).toFixed(1)}" y="${yTexto}" font-size="11" fill="var(--muted)">${fmt(totalRamo)}</text>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px">${filas}</svg>`;
+}
+
 // Gráfico de líneas múltiples (una serie por elemento comparado) + leyenda, mismo criterio SVG a mano que svgLineChart
 function svgMultiLineChart(labels, series) {
   const w = 680, h = 260, pad = 36;
@@ -1008,7 +1068,16 @@ function ficha(pas) {
   const cardRamos = ramosDelPas.length ? selectRamo + svgLineChart(trimestresAsc, ramoDatos) : '<div class="empty">Sin producción</div>';
   const cardEvo = selectEvo + svgLineChart(trimestresAsc, datosEvo);
 
-  $('#app').innerHTML = `<div class="top"><div><button class="back" id="back">← Productores</button><h1 style="margin-top:12px">${esc(p.PAS)}</h1><div class="sub">Ficha 360° del productor</div></div><div style="display:flex;gap:10px;align-items:center;align-self:flex-end">${selectorTrimestre}${botonesAccion}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas${state.trimFicha !== 'TODOS' ? ' (' + esc(state.trimFicha) + ')' : ''}</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(comps.length)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(ramos.length)}</div></div><div class="card kpi"><div class="label">Último trimestre cargado</div><div class="num" style="font-size:20px">${esc(hist.at(-1)?.[0] || '—')}</div></div></div><div class="grid two section"><div class="card"><h3>Datos del PAS</h3><div class="profile">${[['Organización', p.ORGANIZACIÓN], ['Vinculante', p.VINCULANTE], ['Ejecutivo', p.EJECUTIVO], ['Teléfono', p.TELÉFONO], ['Mail', p.MAIL], ['Estado', p.ESTADO], ['Zona', p.ZONA], ['Localidad / Prov.', p['LOCALIDAD/PROV']], ['Nacimiento', fmtFecha(p['FECHA DE NACIMIENTO'])], ['Observaciones', p.OBSERVACIONES]].map(([k, v]) => `<div class="field"><b>${esc(k)}</b>${esc(v || '—')}</div>`).join('')}</div></div><div class="card"><h3>Compañías con producción</h3>${cardCompanias}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo${state.chartCompania ? ' · ' + esc(state.chartCompania) : ''}</h3>${cardRamos}</div><div class="card"><h3>Evolución trimestral</h3>${cardEvo}</div></div><div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px"><h3 style="margin:0">Detalle de cargas${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3>${puedeProd && rowsCompletas.length ? `<button class="btn-secondary" id="btn-borrar-todo-prod">Borrar todo</button>` : ''}</div><div class="tablewrap"><table class="table"><thead><tr><th>Trimestre</th><th>Ramo</th><th>Total</th><th>Ejecutivo</th><th>Organizador</th>${puedeProd ? '<th></th>' : ''}</tr></thead><tbody>${rows.sort((a, b) => trimestreOrden(b.TRIMESTRE) - trimestreOrden(a.TRIMESTRE)).map(x => `<tr><td>${esc(x.TRIMESTRE)}</td><td>${esc(x.RAMO)}</td><td>${fmt(x.TOTAL)}</td><td>${esc(x.EJECUTIVO)}</td><td>${esc(x.ORGANIZADOR)}</td>${puedeProd ? `<td><button class="btn-edit" data-editar-prod="${x._id}" title="Editar carga">✎</button> <button class="btn-del" data-eliminar-prod="${x._id}" title="Eliminar carga">×</button></td>` : ''}</tr>`).join('') || `<tr><td colspan="${puedeProd ? 6 : 5}"><div class="empty">Sin cargas en este trimestre</div></td></tr>`}</tbody></table></div></div>`;
+  // Compañías por ramo: matriz completa (todo el historial) para el gráfico de barras apiladas
+  const ramoCompaniaMatrix = {};
+  rowsCompletas.forEach(x => {
+    if (!ramoCompaniaMatrix[x.RAMO]) ramoCompaniaMatrix[x.RAMO] = {};
+    Object.entries(x.COMPANIAS).forEach(([c, v]) => { ramoCompaniaMatrix[x.RAMO][c] = (ramoCompaniaMatrix[x.RAMO][c] || 0) + v; });
+  });
+  const glosarioCompanias = companiasDelPas.map(c => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px"><span style="width:12px;height:12px;border-radius:3px;background:${colorParaCompania(c)};display:inline-block;flex:none"></span>${esc(c)}</div>`).join('') || '<div class="empty">Sin compañías</div>';
+  const cardCompaniasPorRamo = `<div class="card section"><h3>Compañías por ramo</h3><div style="display:flex;gap:24px;flex-wrap:wrap"><div style="flex:2;min-width:320px">${svgBarrasRamoCompania(ramoCompaniaMatrix, ramosDelPas)}</div><div style="flex:1;min-width:160px">${glosarioCompanias}</div></div></div>`;
+
+  $('#app').innerHTML = `<div class="top"><div><button class="back" id="back">← Productores</button><h1 style="margin-top:12px">${esc(p.PAS)}</h1><div class="sub">Ficha 360° del productor</div></div><div style="display:flex;gap:10px;align-items:center;align-self:flex-end">${selectorTrimestre}${botonesAccion}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas${state.trimFicha !== 'TODOS' ? ' (' + esc(state.trimFicha) + ')' : ''}</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(comps.length)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(ramos.length)}</div></div><div class="card kpi"><div class="label">Último trimestre cargado</div><div class="num" style="font-size:20px">${esc(hist.at(-1)?.[0] || '—')}</div></div></div><div class="grid two section"><div class="card"><h3>Datos del PAS</h3><div class="profile">${[['Organización', p.ORGANIZACIÓN], ['Vinculante', p.VINCULANTE], ['Ejecutivo', p.EJECUTIVO], ['Teléfono', p.TELÉFONO], ['Mail', p.MAIL], ['Estado', p.ESTADO], ['Zona', p.ZONA], ['Localidad / Prov.', p['LOCALIDAD/PROV']], ['Nacimiento', fmtFecha(p['FECHA DE NACIMIENTO'])], ['Observaciones', p.OBSERVACIONES]].map(([k, v]) => `<div class="field"><b>${esc(k)}</b>${esc(v || '—')}</div>`).join('')}</div></div><div class="card"><h3>Compañías con producción</h3>${cardCompanias}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo${state.chartCompania ? ' · ' + esc(state.chartCompania) : ''}</h3>${cardRamos}</div><div class="card"><h3>Evolución trimestral</h3>${cardEvo}</div></div>${cardCompaniasPorRamo}<div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px"><h3 style="margin:0">Detalle de cargas${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3>${puedeProd && rowsCompletas.length ? `<button class="btn-secondary" id="btn-borrar-todo-prod">Borrar todo</button>` : ''}</div><div class="tablewrap"><table class="table"><thead><tr><th>Trimestre</th><th>Ramo</th><th>Total</th><th>Ejecutivo</th><th>Organizador</th>${puedeProd ? '<th></th>' : ''}</tr></thead><tbody>${rows.sort((a, b) => trimestreOrden(b.TRIMESTRE) - trimestreOrden(a.TRIMESTRE)).map(x => `<tr><td>${esc(x.TRIMESTRE)}</td><td>${esc(x.RAMO)}</td><td>${fmt(x.TOTAL)}</td><td>${esc(x.EJECUTIVO)}</td><td>${esc(x.ORGANIZADOR)}</td>${puedeProd ? `<td><button class="btn-edit" data-editar-prod="${x._id}" title="Editar carga">✎</button> <button class="btn-del" data-eliminar-prod="${x._id}" title="Eliminar carga">×</button></td>` : ''}</tr>`).join('') || `<tr><td colspan="${puedeProd ? 6 : 5}"><div class="empty">Sin cargas en este trimestre</div></td></tr>`}</tbody></table></div></div>`;
   $('#back').onclick = () => { state.view = 'productores'; state.pas = null; render() };
   $('#fic-trim').onchange = e => { state.trimFicha = e.target.value; render() };
   if (companiasDelPas.length) document.getElementById('fic-chart-comp').onchange = e => { state.chartCompania = e.target.value; render() };

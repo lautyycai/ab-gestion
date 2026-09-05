@@ -1468,6 +1468,8 @@ function abrirModalEditarUsuario(u) {
       <div class="full"><label>Nombre completo</label><input id="eu-nombre" value="${esc(u.nombre_completo || '')}"></div>
       <div><label>Rol</label><select id="eu-rol">${ROLES_USUARIO.map(r => `<option value="${r.valor}" ${r.valor === u.rol ? 'selected' : ''}>${r.etiqueta}</option>`).join('')}</select></div>
       <div id="eu-dupla-wrap"><label>Dupla asignada</label><select id="eu-dupla">${ejecutivosOrdenados.map(e => `<option value="${esc(e)}" ${e === u.dupla_asignada ? 'selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
+      <div class="full"><label>Nuevo usuario/email <span style="font-weight:400;color:var(--muted)">(dejar vacío para no cambiarlo)</span></label><input id="eu-email" type="email" placeholder="usuario@abgestion.sistema"></div>
+      <div class="full"><label>Nueva contraseña <span style="font-weight:400;color:var(--muted)">(dejar vacío para no cambiarla)</span></label><input id="eu-pass" type="text" placeholder="Mínimo 6 caracteres"></div>
     </div>
     <div id="eu-msg"></div>
     <div class="modal-actions">
@@ -1490,14 +1492,43 @@ function abrirModalEditarUsuario(u) {
     const nombre_completo = document.getElementById('eu-nombre').value.trim();
     const rol = document.getElementById('eu-rol').value;
     const dupla_asignada = necesitaDupla(rol) ? document.getElementById('eu-dupla').value : null;
+    const nuevoEmail = document.getElementById('eu-email').value.trim();
+    const nuevaPass = document.getElementById('eu-pass').value;
 
     if (!nombre_completo) { msg.innerHTML = '<div class="formerr">El nombre no puede quedar vacío.</div>'; return; }
     if (necesitaDupla(rol) && !dupla_asignada) { msg.innerHTML = '<div class="formerr">Este rol necesita una dupla asignada.</div>'; return; }
+    if (nuevaPass && nuevaPass.length < 6) { msg.innerHTML = '<div class="formerr">La contraseña nueva tiene que tener al menos 6 caracteres.</div>'; return; }
 
     btn.disabled = true; btn.textContent = 'Guardando...';
     const { error } = await supa.from('usuarios').update({ nombre_completo, rol, dupla_asignada }).eq('id', u.id);
+    if (error) {
+      btn.disabled = false; btn.textContent = 'Guardar cambios';
+      msg.innerHTML = `<div class="formerr">No se pudo guardar: ${esc(error.message)}</div>`;
+      return;
+    }
+
+    if (nuevoEmail || nuevaPass) {
+      const { data: { session } } = await supa.auth.getSession();
+      try {
+        const resp = await fetch(URL_CREAR_USUARIO, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'editar_credenciales', id: u.id, email: nuevoEmail || undefined, password: nuevaPass || undefined }),
+        });
+        const result = await resp.json();
+        if (!resp.ok) {
+          btn.disabled = false; btn.textContent = 'Guardar cambios';
+          msg.innerHTML = `<div class="formerr">Los datos se guardaron, pero no se pudo cambiar el usuario/contraseña: ${esc(result.error || '')}</div>`;
+          return;
+        }
+      } catch (err) {
+        btn.disabled = false; btn.textContent = 'Guardar cambios';
+        msg.innerHTML = `<div class="formerr">Los datos se guardaron, pero falló la conexión al cambiar el usuario/contraseña: ${esc(err.message)}</div>`;
+        return;
+      }
+    }
+
     btn.disabled = false; btn.textContent = 'Guardar cambios';
-    if (error) { msg.innerHTML = `<div class="formerr">No se pudo guardar: ${esc(error.message)}</div>`; return; }
     msg.innerHTML = '<div class="formok">Guardado correctamente.</div>';
     usuariosCache = null;
     setTimeout(() => { cerrarModal(); cargarUsuarios(); }, 500);

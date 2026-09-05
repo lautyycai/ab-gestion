@@ -1600,13 +1600,37 @@ function renderVistaPerfil() {
     ? renderEstadisticasDupla(duplaObjetivo)
     : '<div class="card"><div class="empty">Este perfil no tiene una dupla asociada, no hay estadísticas de producción para mostrar.</div></div>';
 
-  $('#app').innerHTML = `<div class="top"><div><h1>Perfil</h1><div class="sub">${esc(nombreObjetivo)}${duplaObjetivo ? ' · ' + esc(duplaObjetivo) : ''}</div></div></div>${selectorHtml}${cuerpo}`;
+  const crearDuplaHtml = perfil.rol === 'editor'
+    ? `<div class="card section"><h3>Crear nueva dupla</h3><div class="formgrid"><div class="full"><label>Nombre de la dupla</label><input id="perfil-nueva-dupla" placeholder="Ej: PEREZ/GOMEZ"></div></div><div id="perfil-dupla-msg"></div><div class="modal-actions" style="justify-content:flex-start"><button class="btn-primary" id="btn-crear-dupla">Crear dupla</button></div></div>`
+    : '';
+
+  $('#app').innerHTML = `<div class="top"><div><h1>Perfil</h1><div class="sub">${esc(nombreObjetivo)}${duplaObjetivo ? ' · ' + esc(duplaObjetivo) : ''}</div></div></div>${selectorHtml}${cuerpo}${crearDuplaHtml}`;
 
   if (puedeVerOtros) {
     const sel = document.getElementById('perfil-selector');
     if (sel) sel.onchange = e => { state.perfilObjetivoId = e.target.value; renderVistaPerfil(); };
   }
   document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render(); });
+
+  if (perfil.rol === 'editor') {
+    document.getElementById('btn-crear-dupla').onclick = async () => {
+      const btn = document.getElementById('btn-crear-dupla');
+      const msg = document.getElementById('perfil-dupla-msg');
+      msg.innerHTML = '';
+      const nombre = document.getElementById('perfil-nueva-dupla').value.trim();
+      if (!nombre) { msg.innerHTML = '<div class="formerr">Escribí un nombre para la dupla.</div>'; return; }
+      if (D.catalog.ejecutivos.includes(nombre)) { msg.innerHTML = '<div class="formerr">Ya existe una dupla con ese nombre.</div>'; return; }
+
+      btn.disabled = true; btn.textContent = 'Creando...';
+      const { error } = await supa.from('catalogos').insert({ tipo: 'ejecutivo', valor: nombre, activo: true });
+      btn.disabled = false; btn.textContent = 'Crear dupla';
+      if (error) { msg.innerHTML = `<div class="formerr">No se pudo crear: ${esc(error.message)}</div>`; return; }
+      msg.innerHTML = '<div class="formok">Dupla creada correctamente.</div>';
+      D = await cargarDatos();
+      const input = document.getElementById('perfil-nueva-dupla');
+      if (input) input.value = '';
+    };
+  }
 }
 
 function renderEstadisticasDupla(dupla) {

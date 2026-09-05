@@ -26,6 +26,16 @@
 .loading{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
 /* modal y formularios */
 .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+/* toasts: por encima del modal (z-index 100) a proposito, porque la mayoria de estos mensajes
+   aparecen justo despues de cerrar un modal de confirmacion */
+#toast-root{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:10px;max-width:360px}
+.toast{padding:12px 16px 12px 14px;border-radius:10px;font-size:13px;box-shadow:0 10px 30px rgba(15,23,42,.22);display:flex;align-items:flex-start;gap:10px;animation:toast-in .2s ease-out}
+.toast-error{background:#F8ECE8;color:var(--danger);border:1px solid #F0D8CF}
+.toast-ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.toast span{flex:1}
+.toast button{border:0;background:transparent;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:0;flex:none;opacity:.6}
+.toast button:hover{opacity:1}
+@keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .modal-box{background:#fff;border-radius:14px;max-width:600px;width:100%;max-height:88vh;overflow:auto;padding:26px;box-shadow:0 20px 60px rgba(15,23,42,.25)}
 .modal-box h2{margin:0 0 4px;font-size:19px}
 .modal-box .modal-sub{color:var(--muted);font-size:13px;margin-bottom:18px}
@@ -355,6 +365,25 @@ function confirmarAccion(mensaje, accion) {
     await accion();
   };
 }
+// Reemplaza al alert() nativo (mismo problema que confirm(): bloquea la pagina y la automatizacion
+// de testing se lo puede tragar en silencio) por una notificacion flotante propia. Se apila arriba
+// del modal (z-index mas alto) porque la mayoria de estos mensajes aparecen justo despues de cerrar
+// uno. Se cierra sola a los 7s o con la X, lo que pase primero.
+function mostrarToast(mensaje, tipo) {
+  let root = document.getElementById('toast-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'toast-root';
+    document.body.appendChild(root);
+  }
+  const el = document.createElement('div');
+  el.className = `toast toast-${tipo === 'ok' ? 'ok' : 'error'}`;
+  el.innerHTML = `<span>${esc(mensaje)}</span><button aria-label="Cerrar">×</button>`;
+  const quitar = () => el.remove();
+  el.querySelector('button').onclick = quitar;
+  root.appendChild(el);
+  setTimeout(quitar, 7000);
+}
 
 /* ============== REPORTAR (comentarios / bugs de cualquier usuario) ============== */
 function abrirFormReporte() {
@@ -623,13 +652,16 @@ async function guardarEdicionProduccion(prod) {
   if (ramo === 'TODOS' || trimestre === 'TODOS') { msg.innerHTML = '<div class="formerr">Elegí ramo y trimestre.</div>'; return; }
 
   const filas = Array.from(document.querySelectorAll('#filas-compania .companiarow'));
-  const detalle = [];
+  // Si el usuario agregó la misma compañía en más de una fila, se suman en vez de guardarse
+  // como registros separados (podía pasar sin querer, sobre todo con listas largas de filas).
+  const detalleMap = {};
   for (const fila of filas) {
     const id = fila.id.replace('fila-comp-', '');
     const comp = document.getElementById(`fc-comp-${id}`).value;
     const cant = parseInt(document.getElementById(`fc-cant-${id}`).value, 10);
-    if (comp !== 'TODOS' && cant > 0) detalle.push({ compania: comp, cantidad: cant });
+    if (comp !== 'TODOS' && cant > 0) detalleMap[comp] = (detalleMap[comp] || 0) + cant;
   }
+  const detalle = Object.entries(detalleMap).map(([compania, cantidad]) => ({ compania, cantidad }));
   if (detalle.length === 0) { msg.innerHTML = '<div class="formerr">Agregá al menos una compañía con cantidad mayor a 0.</div>'; return; }
 
   const total = detalle.reduce((s, d) => s + d.cantidad, 0);
@@ -677,13 +709,16 @@ async function guardarProduccion(p) {
   if (ramo === 'TODOS' || trimestre === 'TODOS') { msg.innerHTML = '<div class="formerr">Elegí ramo y trimestre.</div>'; return; }
 
   const filas = Array.from(document.querySelectorAll('#filas-compania .companiarow'));
-  const detalle = [];
+  // Si el usuario agregó la misma compañía en más de una fila, se suman en vez de guardarse
+  // como registros separados (podía pasar sin querer, sobre todo con listas largas de filas).
+  const detalleMap = {};
   for (const fila of filas) {
     const id = fila.id.replace('fila-comp-', '');
     const comp = document.getElementById(`fc-comp-${id}`).value;
     const cant = parseInt(document.getElementById(`fc-cant-${id}`).value, 10);
-    if (comp !== 'TODOS' && cant > 0) detalle.push({ compania: comp, cantidad: cant });
+    if (comp !== 'TODOS' && cant > 0) detalleMap[comp] = (detalleMap[comp] || 0) + cant;
   }
+  const detalle = Object.entries(detalleMap).map(([compania, cantidad]) => ({ compania, cantidad }));
   if (detalle.length === 0) { msg.innerHTML = '<div class="formerr">Agregá al menos una compañía con cantidad mayor a 0.</div>'; return; }
 
   const total = detalle.reduce((s, d) => s + d.cantidad, 0);
@@ -1042,7 +1077,7 @@ function renderTablaProductores() {
       confirmarAccion(`¿Eliminar el PAS "${nombre}"? Esta acción no se puede deshacer.`, async () => {
         btn.disabled = true;
         const { error } = await supa.rpc('eliminar_pas', { p_pas_id: Number(btn.dataset.eliminarPas) });
-        if (error) { alert(error.message); btn.disabled = false; return; }
+        if (error) { mostrarToast(error.message, 'error'); btn.disabled = false; return; }
         D = await cargarDatos();
         renderTablaProductores();
       });
@@ -1156,7 +1191,7 @@ function ficha(pas) {
         confirmarAccion(`¿Eliminar la carga de ${prod.RAMO} (${prod.TRIMESTRE})? Esta acción no se puede deshacer.`, async () => {
           btn.disabled = true;
           const { error } = await supa.rpc('eliminar_produccion', { p_produccion_id: prod._id });
-          if (error) { alert(error.message); btn.disabled = false; return; }
+          if (error) { mostrarToast(error.message, 'error'); btn.disabled = false; return; }
           D = await cargarDatos();
           render();
         });
@@ -1169,9 +1204,9 @@ function ficha(pas) {
           btnBorrarTodoProd.disabled = true;
           const { data, error } = await supa.rpc('eliminar_producciones_pas', { p_pas_id: p._id });
           btnBorrarTodoProd.disabled = false;
-          if (error) { alert(error.message); return; }
+          if (error) { mostrarToast(error.message, 'error'); return; }
           if (typeof data === 'number' && data < rowsCompletas.length) {
-            alert(`Se borraron ${data} de ${rowsCompletas.length} cargas — las demás pertenecen a otra dupla y no tenías permiso para borrarlas.`);
+            mostrarToast(`Se borraron ${data} de ${rowsCompletas.length} cargas — las demás pertenecen a otra dupla y no tenías permiso para borrarlas.`, 'error');
           }
           D = await cargarDatos();
           render();
@@ -1281,7 +1316,7 @@ function vistaReportes() {
         const id = btn.dataset.eliminarReporte;
         btn.disabled = true;
         const { error } = await supa.from('reportes').delete().eq('id', id);
-        if (error) { alert('No se pudo eliminar: ' + error.message); btn.disabled = false; return; }
+        if (error) { mostrarToast('No se pudo eliminar: ' + error.message, 'error'); btn.disabled = false; return; }
         reportesCache.rows = reportesCache.rows.filter(r => String(r.id) !== id);
         render();
       });
@@ -1293,7 +1328,7 @@ function vistaReportes() {
       sel.disabled = true;
       const { error } = await supa.from('reportes').update({ estado: sel.value }).eq('id', id);
       sel.disabled = false;
-      if (error) { alert('No se pudo actualizar: ' + error.message); return; }
+      if (error) { mostrarToast('No se pudo actualizar: ' + error.message, 'error'); return; }
       const row = reportesCache.rows.find(r => String(r.id) === id);
       if (row) row.estado = sel.value;
       render();
@@ -1522,11 +1557,11 @@ function renderListaUsuarios() {
             body: JSON.stringify({ action: 'eliminar', id: btn.dataset.eliminarUsuario }),
           });
           const result = await resp.json();
-          if (!resp.ok) { alert(result.error || 'No se pudo eliminar el usuario'); btn.disabled = false; return; }
+          if (!resp.ok) { mostrarToast(result.error || 'No se pudo eliminar el usuario', 'error'); btn.disabled = false; return; }
           usuariosCache = null;
           renderListaUsuarios();
         } catch (err) {
-          alert('Error de red: ' + err.message);
+          mostrarToast('Error de red: ' + err.message, 'error');
           btn.disabled = false;
         }
       });

@@ -2,7 +2,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--verde-marca:#1B8763;--azul-marca:#1B3A5C;--azul-medio:#2D6CA6;--terracota:#C1613F;--bg:#F7F5F1;--card:#FFFFFF;--ink:#1C2B2A;--muted:#6B7770;--line:#E4E1DA;--accent:#1B8763;--accent2:#1B3A5C;--danger:#C1613F;--shadow:0 4px 14px rgba(27,58,92,.06)}*{box-sizing:border-box}body{margin:0;font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink);background:var(--bg)}h1,h2,h3,.brand{font-family:'Fraunces',Georgia,serif;font-weight:600}.num{font-variant-numeric:tabular-nums}.table{font-variant-numeric:tabular-nums}button,input,select{font:inherit}.app{display:flex;min-height:100vh}.side{width:245px;background:var(--azul-marca);color:#fff;padding:22px 14px;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column}.brand{font-weight:800;font-size:20px;padding:10px 12px 24px}.brand small{display:block;font-size:11px;color:#98a2b3;margin-top:4px;font-weight:500}.nav{flex:1}.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;border-left:3px solid transparent;background:transparent;color:#cbd5e1;padding:12px 14px 12px 11px;border-radius:9px;margin:5px 0;cursor:pointer}.nav button svg{flex:none;width:17px;height:17px}.nav button:hover{background:#3D5874;color:#fff}.nav button.active{background:#3D5874;color:#fff;border-left-color:var(--verde-marca)}.userbox{border-top:1px solid #3D5874;padding:14px 12px;font-size:12px;color:#98a2b3}.userbox b{display:block;color:#fff;font-size:13px;margin-bottom:2px}.userbox .rolpill{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;background:#3D5874;color:#A0BDD7;font-size:10px;font-weight:700;letter-spacing:.02em}.logout{margin-top:10px;width:100%;border:1px solid #3D5874;background:transparent;color:#cbd5e1;border-radius:8px;padding:7px;cursor:pointer;font-size:12px}.logout svg{width:15px;height:15px;flex:none}.logout:hover{background:#3D5874;color:#fff}.main{margin-left:245px;padding:28px;width:calc(100% - 245px)}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.top h1{margin:0;font-size:28px}.sub{color:var(--muted);font-size:13px;margin-top:5px}.filters{display:flex;gap:10px;flex-wrap:wrap}.select,input{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 11px;color:var(--ink)}.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}.card.kpi{background:rgba(27,135,99,.04);box-shadow:var(--shadow)}.kpi .label{font-size:12px;color:var(--muted)}.kpi .num{font-family:'Fraunces',Georgia,serif;font-size:30px;font-weight:700;margin-top:7px}.two{grid-template-columns:1.35fr 1fr}.three{grid-template-columns:repeat(3,1fr)}.card h3{margin:0 0 14px;font-size:15px}.barrow{display:grid;grid-template-columns:150px 1fr 65px;gap:10px;align-items:center;margin:10px 0;font-size:12px}.bar{height:9px;background:#EAE6DD;border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px}.tablewrap{overflow:auto;max-height:580px}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.table th{color:var(--muted);font-weight:650;position:sticky;top:0;background:#F0EDE6}.table tr:hover td{background:#F0EDE6}.link{color:var(--accent);cursor:pointer;font-weight:700}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#E3EFE9;color:var(--accent);font-size:11px}.profile{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field{padding:10px;background:#F0EDE6;border-radius:8px}.field b{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.empty{padding:35px;text-align:center;color:var(--muted)}.back{border:0;background:#E3EFE9;color:var(--accent);border-radius:8px;padding:8px 12px;cursor:pointer}.section{margin-top:18px}.search{min-width:260px}.notice{font-size:12px;color:var(--muted)}
+:root{--verde-marca:#1B8763;--azul-marca:#1B3A5C;--azul-medio:#2D6CA6;--terracota:#C1613F;--bg:#F7F5F1;--card:#FFFFFF;--ink:#1C2B2A;--muted:#6B7770;--line:#E4E1DA;--accent:#1B8763;--accent2:#1B3A5C;--danger:#C1613F;--shadow:0 4px 14px rgba(27,58,92,.06)}*{box-sizing:border-box}body{margin:0;font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink);background:var(--bg)}h1,h2,h3,.brand{font-family:'Fraunces',Georgia,serif;font-weight:600}.num{font-variant-numeric:tabular-nums}.table{font-variant-numeric:tabular-nums}button,input,select{font:inherit}.app{display:flex;min-height:100vh}.side{width:245px;background:var(--azul-marca);color:#fff;padding:22px 14px;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column}.brand{font-weight:800;font-size:20px;padding:10px 12px 24px}.brand small{display:block;font-size:11px;color:#98a2b3;margin-top:4px;font-weight:500}.nav{flex:1}.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;border-left:3px solid transparent;background:transparent;color:#cbd5e1;padding:12px 14px 12px 11px;border-radius:9px;margin:5px 0;cursor:pointer}.nav button svg{flex:none;width:17px;height:17px}.nav button:hover{background:#3D5874;color:#fff}.nav button.active{background:#3D5874;color:#fff;border-left-color:var(--verde-marca)}.userbox{border-top:1px solid #3D5874;padding:14px 12px;font-size:12px;color:#98a2b3}.userbox b{display:block;color:#fff;font-size:13px;margin-bottom:2px}.userbox .rolpill{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;background:#3D5874;color:#A0BDD7;font-size:10px;font-weight:700;letter-spacing:.02em}.logout{margin-top:10px;width:100%;border:1px solid #3D5874;background:transparent;color:#cbd5e1;border-radius:8px;padding:7px;cursor:pointer;font-size:12px}.logout svg{width:15px;height:15px;flex:none}.logout:hover{background:#3D5874;color:#fff}.main{margin-left:245px;padding:28px;width:calc(100% - 245px)}.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:22px}.top h1{margin:0;font-size:28px}.sub{color:var(--muted);font-size:13px;margin-top:5px}.filters{display:flex;gap:10px;flex-wrap:wrap}.select,input{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 11px;color:var(--ink)}.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}.card.kpi{background:rgba(27,135,99,.04);box-shadow:var(--shadow)}.kpi .label{font-size:12px;color:var(--muted)}.kpi .num{font-family:'Fraunces',Georgia,serif;font-size:30px;font-weight:700;margin-top:7px}.two{grid-template-columns:1.35fr 1fr}.three{grid-template-columns:repeat(3,1fr)}.card h3{margin:0 0 14px;font-size:15px}.barrow{display:grid;grid-template-columns:150px 1fr 65px;gap:10px;align-items:center;margin:10px 0;font-size:12px}.bar{height:9px;background:#EAE6DD;border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px}.tablewrap{overflow:auto;max-height:580px}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.table th{color:var(--muted);font-weight:650;position:sticky;top:0;background:#F0EDE6}.table tr:hover td{background:#F0EDE6}.link{color:var(--accent);cursor:pointer;font-weight:700}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#E3EFE9;color:var(--accent);font-size:11px}.profile{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field{padding:10px;background:#F0EDE6;border-radius:8px}.field b{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.empty{padding:35px;text-align:center;color:var(--muted)}.back{border:0;background:#E3EFE9;color:var(--accent);border-radius:8px;padding:8px 12px;cursor:pointer}.section{margin-top:18px}.search{min-width:260px}.notice{font-size:12px;color:var(--muted)}
 /* dashboard: iconos, medallas y barras con color por fila */
 .kpi-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
 .kpi-icon svg{width:17px;height:17px}
@@ -343,6 +343,17 @@ function cerrarModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay.style.display = 'none';
   overlay.innerHTML = '';
+}
+// Reemplaza al confirm() nativo del navegador (bloquea la pagina y rompe la automatizacion de
+// testing) por el modal propio del sitio. accion es un callback async que se ejecuta si el
+// usuario confirma; si cancela, no pasa nada.
+function confirmarAccion(mensaje, accion) {
+  abrirModal(`<h2>¿Confirmar?</h2><div class="modal-sub">${esc(mensaje)}</div><div class="modal-actions"><button class="btn-secondary" id="btn-cancelar-confirm">Cancelar</button><button class="btn-danger" id="btn-confirmar-confirm">Sí, eliminar</button></div>`);
+  document.getElementById('btn-cancelar-confirm').onclick = cerrarModal;
+  document.getElementById('btn-confirmar-confirm').onclick = async () => {
+    cerrarModal();
+    await accion();
+  };
 }
 
 /* ============== REPORTAR (comentarios / bugs de cualquier usuario) ============== */
@@ -1026,14 +1037,15 @@ function renderTablaProductores() {
 
   document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render() });
   document.querySelectorAll('[data-eliminar-pas]').forEach(btn => {
-    btn.onclick = async () => {
+    btn.onclick = () => {
       const nombre = btn.dataset.nombrePas;
-      if (!confirm(`¿Eliminar el PAS "${nombre}"? Esta acción no se puede deshacer.`)) return;
-      btn.disabled = true;
-      const { error } = await supa.rpc('eliminar_pas', { p_pas_id: Number(btn.dataset.eliminarPas) });
-      if (error) { alert(error.message); btn.disabled = false; return; }
-      D = await cargarDatos();
-      renderTablaProductores();
+      confirmarAccion(`¿Eliminar el PAS "${nombre}"? Esta acción no se puede deshacer.`, async () => {
+        btn.disabled = true;
+        const { error } = await supa.rpc('eliminar_pas', { p_pas_id: Number(btn.dataset.eliminarPas) });
+        if (error) { alert(error.message); btn.disabled = false; return; }
+        D = await cargarDatos();
+        renderTablaProductores();
+      });
     };
   });
   const prevBtn = document.getElementById('pag-prev');
@@ -1120,7 +1132,7 @@ function ficha(pas) {
   const glosarioCompanias = companiasDelPas.map(c => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px"><span style="width:12px;height:12px;border-radius:3px;background:${colorParaCompania(c)};display:inline-block;flex:none"></span>${esc(c)}</div>`).join('') || '<div class="empty">Sin compañías</div>';
   const cardCompaniasPorRamo = `<div class="card section"><h3>Compañías por ramo</h3><div style="display:flex;gap:24px;flex-wrap:wrap"><div style="flex:2;min-width:320px">${svgBarrasRamoCompania(ramoCompaniaMatrix, ramosDelPas)}</div><div style="flex:1;min-width:160px">${glosarioCompanias}</div></div></div>`;
 
-  $('#app').innerHTML = `<div class="top"><div><button class="back" id="back">← Productores</button><h1 style="margin-top:12px">${esc(p.PAS)}</h1><div class="sub">Ficha 360° del productor</div></div><div style="display:flex;gap:10px;align-items:center;align-self:flex-end">${selectorTrimestre}${botonesAccion}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas${state.trimFicha !== 'TODOS' ? ' (' + esc(state.trimFicha) + ')' : ''}</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(comps.length)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(ramos.length)}</div></div><div class="card kpi"><div class="label">Último trimestre cargado</div><div class="num" style="font-size:20px">${esc(hist.at(-1)?.[0] || '—')}</div></div></div><div class="grid two section"><div class="card"><h3>Datos del PAS</h3><div class="profile">${[['Organización', p.ORGANIZACIÓN], ['Vinculante', p.VINCULANTE], ['Ejecutivo', p.EJECUTIVO], ['Teléfono', p.TELÉFONO], ['Mail', p.MAIL], ['Estado', p.ESTADO], ['Zona', p.ZONA], ['Localidad / Prov.', p['LOCALIDAD/PROV']], ['Nacimiento', fmtFecha(p['FECHA DE NACIMIENTO'])], ['Observaciones', p.OBSERVACIONES]].map(([k, v]) => `<div class="field"><b>${esc(k)}</b>${esc(v || '—')}</div>`).join('')}<div class="field" style="grid-column:1/-1"><b>Compañías con las que opera</b>${esc(p['COMPAÑÍAS CON LAS QUE OPERA'] || '—')}</div></div></div><div class="card"><h3>Compañías con producción</h3>${cardCompanias}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo${state.chartCompania ? ' · ' + esc(state.chartCompania) : ''}</h3>${cardRamos}</div><div class="card"><h3>Evolución trimestral</h3>${cardEvo}</div></div>${cardCompaniasPorRamo}<div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px"><h3 style="margin:0">Detalle de cargas${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3>${puedeProd && rowsCompletas.length ? `<button class="btn-danger" id="btn-borrar-todo-prod">Borrar todo</button>` : ''}</div><div class="tablewrap"><table class="table"><thead><tr><th>Trimestre</th><th>Ramo</th><th>Total</th><th>Ejecutivo</th><th>Organizador</th>${puedeProd ? '<th></th>' : ''}</tr></thead><tbody>${rows.sort((a, b) => trimestreOrden(b.TRIMESTRE) - trimestreOrden(a.TRIMESTRE)).map(x => `<tr><td>${esc(x.TRIMESTRE)}</td><td>${esc(x.RAMO)}</td><td>${fmt(x.TOTAL)}</td><td>${esc(x.EJECUTIVO)}</td><td>${esc(x.ORGANIZADOR)}</td>${puedeProd ? `<td><button class="btn-edit" data-editar-prod="${x._id}" title="Editar carga">✎</button> <button class="btn-del" data-eliminar-prod="${x._id}" title="Eliminar carga">×</button></td>` : ''}</tr>`).join('') || `<tr><td colspan="${puedeProd ? 6 : 5}"><div class="empty">Sin cargas en este trimestre</div></td></tr>`}</tbody></table></div></div>`;
+  $('#app').innerHTML = `<div class="top"><div><button class="back" id="back">← Productores</button><h1 style="margin-top:12px">${esc(p.PAS)}</h1><div class="sub">Ficha 360° del productor</div></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;align-self:flex-end">${selectorTrimestre}${botonesAccion}</div></div><div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas${state.trimFicha !== 'TODOS' ? ' (' + esc(state.trimFicha) + ')' : ''}</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(comps.length)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(ramos.length)}</div></div><div class="card kpi"><div class="label">Último trimestre cargado</div><div class="num" style="font-size:20px">${esc(hist.at(-1)?.[0] || '—')}</div></div></div><div class="grid two section"><div class="card"><h3>Datos del PAS</h3><div class="profile">${[['Organización', p.ORGANIZACIÓN], ['Vinculante', p.VINCULANTE], ['Ejecutivo', p.EJECUTIVO], ['Teléfono', p.TELÉFONO], ['Mail', p.MAIL], ['Estado', p.ESTADO], ['Zona', p.ZONA], ['Localidad / Prov.', p['LOCALIDAD/PROV']], ['Nacimiento', fmtFecha(p['FECHA DE NACIMIENTO'])], ['Observaciones', p.OBSERVACIONES]].map(([k, v]) => `<div class="field"><b>${esc(k)}</b>${esc(v || '—')}</div>`).join('')}<div class="field" style="grid-column:1/-1"><b>Compañías con las que opera</b>${esc(p['COMPAÑÍAS CON LAS QUE OPERA'] || '—')}</div></div></div><div class="card"><h3>Compañías con producción</h3>${cardCompanias}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo${state.chartCompania ? ' · ' + esc(state.chartCompania) : ''}</h3>${cardRamos}</div><div class="card"><h3>Evolución trimestral</h3>${cardEvo}</div></div>${cardCompaniasPorRamo}<div class="card section"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px"><h3 style="margin:0">Detalle de cargas${state.trimFicha !== 'TODOS' ? ' · ' + esc(state.trimFicha) : ''}</h3>${puedeProd && rowsCompletas.length ? `<button class="btn-danger" id="btn-borrar-todo-prod">Borrar todo</button>` : ''}</div><div class="tablewrap"><table class="table"><thead><tr><th>Trimestre</th><th>Ramo</th><th>Total</th><th>Ejecutivo</th><th>Organizador</th>${puedeProd ? '<th></th>' : ''}</tr></thead><tbody>${rows.sort((a, b) => trimestreOrden(b.TRIMESTRE) - trimestreOrden(a.TRIMESTRE)).map(x => `<tr><td>${esc(x.TRIMESTRE)}</td><td>${esc(x.RAMO)}</td><td>${fmt(x.TOTAL)}</td><td>${esc(x.EJECUTIVO)}</td><td>${esc(x.ORGANIZADOR)}</td>${puedeProd ? `<td><button class="btn-edit" data-editar-prod="${x._id}" title="Editar carga">✎</button> <button class="btn-del" data-eliminar-prod="${x._id}" title="Eliminar carga">×</button></td>` : ''}</tr>`).join('') || `<tr><td colspan="${puedeProd ? 6 : 5}"><div class="empty">Sin cargas en este trimestre</div></td></tr>`}</tbody></table></div></div>`;
   $('#back').onclick = () => { state.view = 'productores'; state.pas = null; render() };
   $('#fic-trim').onchange = e => { state.trimFicha = e.target.value; render() };
   if (companiasDelPas.length) document.getElementById('fic-chart-comp').onchange = e => { state.chartCompania = e.target.value; render() };
@@ -1138,30 +1150,32 @@ function ficha(pas) {
       };
     });
     document.querySelectorAll('[data-eliminar-prod]').forEach(btn => {
-      btn.onclick = async () => {
+      btn.onclick = () => {
         const prod = rows.find(x => String(x._id) === btn.dataset.eliminarProd);
         if (!prod) return;
-        if (!confirm(`¿Eliminar la carga de ${prod.RAMO} (${prod.TRIMESTRE})? Esta acción no se puede deshacer.`)) return;
-        btn.disabled = true;
-        const { error } = await supa.rpc('eliminar_produccion', { p_produccion_id: prod._id });
-        if (error) { alert(error.message); btn.disabled = false; return; }
-        D = await cargarDatos();
-        render();
+        confirmarAccion(`¿Eliminar la carga de ${prod.RAMO} (${prod.TRIMESTRE})? Esta acción no se puede deshacer.`, async () => {
+          btn.disabled = true;
+          const { error } = await supa.rpc('eliminar_produccion', { p_produccion_id: prod._id });
+          if (error) { alert(error.message); btn.disabled = false; return; }
+          D = await cargarDatos();
+          render();
+        });
       };
     });
     const btnBorrarTodoProd = document.getElementById('btn-borrar-todo-prod');
     if (btnBorrarTodoProd) {
-      btnBorrarTodoProd.onclick = async () => {
-        if (!confirm(`¿Eliminar las ${rowsCompletas.length} cargas de ${p.PAS}? Es todo el historial de este PAS, sin importar el filtro de trimestre de arriba. Esta acción no se puede deshacer.`)) return;
-        btnBorrarTodoProd.disabled = true;
-        const { data, error } = await supa.rpc('eliminar_producciones_pas', { p_pas_id: p._id });
-        btnBorrarTodoProd.disabled = false;
-        if (error) { alert(error.message); return; }
-        if (typeof data === 'number' && data < rowsCompletas.length) {
-          alert(`Se borraron ${data} de ${rowsCompletas.length} cargas — las demás pertenecen a otra dupla y no tenías permiso para borrarlas.`);
-        }
-        D = await cargarDatos();
-        render();
+      btnBorrarTodoProd.onclick = () => {
+        confirmarAccion(`¿Eliminar las ${rowsCompletas.length} cargas de ${p.PAS}? Es todo el historial de este PAS, sin importar el filtro de trimestre de arriba. Esta acción no se puede deshacer.`, async () => {
+          btnBorrarTodoProd.disabled = true;
+          const { data, error } = await supa.rpc('eliminar_producciones_pas', { p_pas_id: p._id });
+          btnBorrarTodoProd.disabled = false;
+          if (error) { alert(error.message); return; }
+          if (typeof data === 'number' && data < rowsCompletas.length) {
+            alert(`Se borraron ${data} de ${rowsCompletas.length} cargas — las demás pertenecen a otra dupla y no tenías permiso para borrarlas.`);
+          }
+          D = await cargarDatos();
+          render();
+        });
       };
     }
   }
@@ -1262,14 +1276,15 @@ function vistaReportes() {
 
   document.getElementById('btn-recargar-reportes').onclick = () => { reportesCache = null; render(); };
   document.querySelectorAll('[data-eliminar-reporte]').forEach(btn => {
-    btn.onclick = async () => {
-      if (!confirm('¿Eliminar este reporte? Esta acción no se puede deshacer.')) return;
-      const id = btn.dataset.eliminarReporte;
-      btn.disabled = true;
-      const { error } = await supa.from('reportes').delete().eq('id', id);
-      if (error) { alert('No se pudo eliminar: ' + error.message); btn.disabled = false; return; }
-      reportesCache.rows = reportesCache.rows.filter(r => String(r.id) !== id);
-      render();
+    btn.onclick = () => {
+      confirmarAccion('¿Eliminar este reporte? Esta acción no se puede deshacer.', async () => {
+        const id = btn.dataset.eliminarReporte;
+        btn.disabled = true;
+        const { error } = await supa.from('reportes').delete().eq('id', id);
+        if (error) { alert('No se pudo eliminar: ' + error.message); btn.disabled = false; return; }
+        reportesCache.rows = reportesCache.rows.filter(r => String(r.id) !== id);
+        render();
+      });
     };
   });
   document.querySelectorAll('[data-cambiar-estado]').forEach(sel => {
@@ -1495,25 +1510,26 @@ function renderListaUsuarios() {
     };
   });
   document.querySelectorAll('[data-eliminar-usuario]').forEach(btn => {
-    btn.onclick = async () => {
+    btn.onclick = () => {
       const nombre = btn.dataset.nombreUsuario;
-      if (!confirm(`¿Eliminar al usuario "${nombre}"? Esta acción no se puede deshacer.`)) return;
-      btn.disabled = true;
-      const { data: { session } } = await supa.auth.getSession();
-      try {
-        const resp = await fetch(URL_CREAR_USUARIO, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ action: 'eliminar', id: btn.dataset.eliminarUsuario }),
-        });
-        const result = await resp.json();
-        if (!resp.ok) { alert(result.error || 'No se pudo eliminar el usuario'); btn.disabled = false; return; }
-        usuariosCache = null;
-        renderListaUsuarios();
-      } catch (err) {
-        alert('Error de red: ' + err.message);
-        btn.disabled = false;
-      }
+      confirmarAccion(`¿Eliminar al usuario "${nombre}"? Esta acción no se puede deshacer.`, async () => {
+        btn.disabled = true;
+        const { data: { session } } = await supa.auth.getSession();
+        try {
+          const resp = await fetch(URL_CREAR_USUARIO, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ action: 'eliminar', id: btn.dataset.eliminarUsuario }),
+          });
+          const result = await resp.json();
+          if (!resp.ok) { alert(result.error || 'No se pudo eliminar el usuario'); btn.disabled = false; return; }
+          usuariosCache = null;
+          renderListaUsuarios();
+        } catch (err) {
+          alert('Error de red: ' + err.message);
+          btn.disabled = false;
+        }
+      });
     };
   });
 }

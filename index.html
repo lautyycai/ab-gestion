@@ -280,7 +280,13 @@ function renderShell() {
       </aside>
       <main class="main"><div id="app"></div></main>
     </div>
-    <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this) cerrarModal()"></div>`;
+    <div id="modal-overlay" class="modal-overlay"></div>`;
+  // Cerrar el modal solo si el click empezó Y terminó en el fondo (overlay), nunca si arrancó
+  // adentro del modal — así seleccionar texto con el mouse y soltar afuera no lo cierra por error.
+  let modalMouseDownEnOverlay = false;
+  const modalOverlayEl = document.getElementById('modal-overlay');
+  modalOverlayEl.onmousedown = e => { modalMouseDownEnOverlay = (e.target === modalOverlayEl); };
+  modalOverlayEl.onclick = e => { if (modalMouseDownEnOverlay && e.target === modalOverlayEl) cerrarModal(); };
   document.getElementById('btn-logout').onclick = async () => {
     desuscribirReportes();
     await supa.auth.signOut();

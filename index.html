@@ -710,7 +710,8 @@ function trimestreOrden(t) {
 }
 
 // Gráfico de líneas armado a mano en SVG (no hay librería de gráficos en el proyecto)
-function svgLineChart(labels, values) {
+function svgLineChart(labels, values, color) {
+  color = color || 'var(--accent)';
   const w = 560, h = 180, pad = 32;
   if (!labels.length || values.every(v => !v)) {
     return '<div class="empty">Sin datos para mostrar</div>';
@@ -724,7 +725,7 @@ function svgLineChart(labels, values) {
   }));
   const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
   const circles = points.map(p =>
-    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="var(--accent)"></circle>` +
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="${color}"></circle>` +
     `<text x="${p.x.toFixed(1)}" y="${(p.y - 8).toFixed(1)}" font-size="11" text-anchor="middle" fill="var(--ink)">${fmt(p.v)}</text>`
   ).join('');
   const xlabels = labels.map((l, i) =>
@@ -732,7 +733,7 @@ function svgLineChart(labels, values) {
   ).join('');
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px" preserveAspectRatio="xMidYMid meet">
     <line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" stroke="var(--line)"></line>
-    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"></path>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"></path>
     ${circles}${xlabels}
   </svg>`;
 }
@@ -810,47 +811,31 @@ function rankingParaTipo(tipo, filas) {
   return [];
 }
 
-function bloqueRanking(titulo, datos) {
+function bloqueRanking(titulo, datos, tipo) {
   if (!datos.length) return `<div class="card"><h3>${esc(titulo)}</h3><div class="empty">Sin datos</div></div>`;
   const max = datos[0][1] || 1;
-  return `<div class="card"><h3>${esc(titulo)}</h3>${datos.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('')}</div>`;
+  return `<div class="card"><h3>${esc(titulo)}</h3>${datos.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max * 100}%${tipo === 'COMPANIA' ? `;background:${colorParaCompania(k)}` : ''}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div>`;
 }
 
 const PALETA_COMPARAR = ['#1B8763', '#1B3A5C', '#2D6CA6', '#C1613F', '#5FA98A'];
 
-// Colores que se acercan a la identidad visual de compañías de seguros conocidas (mejor esfuerzo,
-// no verificados al pixel — avisen si alguno no corresponde y se ajusta). Para el resto, se genera
-// un color estable a partir del nombre, así siempre le toca el mismo color a la misma compañía.
-const COLOR_COMPANIA = {
-  'SANCOR': '#00833E', 'SANCOR SEGUROS': '#00833E',
-  'PROVINCIA': '#2E7D32', 'PROVINCIA SEGUROS': '#2E7D32',
-  'MERCANTIL ANDINA': '#003DA5',
-  'FEDERACIÓN PATRONAL': '#1B3F8B', 'FEDERACION PATRONAL': '#1B3F8B',
-  'RIVADAVIA': '#E30613', 'RIVADAVIA SEGUROS': '#E30613',
-  'LA CAJA': '#F7941E', 'LA CAJA SEGUROS': '#F7941E',
-  'NACIÓN': '#75AADB', 'NACION': '#75AADB', 'NACIÓN SEGUROS': '#75AADB', 'NACION SEGUROS': '#75AADB',
-  'GALENO': '#8DC63F',
-  'EXPERTA': '#6A1B9A', 'EXPERTA SEGUROS': '#6A1B9A',
-  'RUS': '#004C97', 'RIO URUGUAY SEGUROS': '#004C97', 'RÍO URUGUAY SEGUROS': '#004C97',
-  'SAN CRISTOBAL': '#1565C0', 'SAN CRISTÓBAL': '#1565C0',
-  'ZURICH': '#0066B3',
+// Solo 3 marcas globales con color verificado. Para el resto (aseguradoras regionales sin manual de
+// marca público) se genera un color estable a partir del nombre — mismo nombre, siempre mismo color.
+const COLOR_COMPANIAS_OVERRIDE = {
   'ALLIANZ': '#003781',
-  'HDI': '#78BE20', 'HDI SEGUROS': '#78BE20',
-  'SURA': '#003DA5',
-  'ATM': '#8E1145',
-  'DIGNA': '#D97706',
-  'COOPERACIÓN SEGUROS': '#B71C1C', 'COOPERACION SEGUROS': '#B71C1C',
-  'INTEGRITY': '#1E3A5F', 'INTEGRITY SEGUROS': '#1E3A5F',
-  'TRIUNFO': '#C62828', 'TRIUNFO SEGUROS': '#C62828',
-  'ORBIS': '#00838F', 'ORBIS SEGUROS': '#00838F',
+  'HDI': '#E2001A',
+  'BBVA': '#004481',
 };
-const PALETA_FALLBACK_COMPANIA = ['#1B8763', '#1B3A5C', '#2D6CA6', '#C1613F', '#5FA98A', '#125F46', '#4E86B8'];
 function colorParaCompania(nombre) {
-  const clave = String(nombre || '').toUpperCase().trim();
-  if (COLOR_COMPANIA[clave]) return COLOR_COMPANIA[clave];
+  const key = String(nombre || '').trim().toUpperCase();
+  if (COLOR_COMPANIAS_OVERRIDE[key]) return COLOR_COMPANIAS_OVERRIDE[key];
   let hash = 0;
-  for (let i = 0; i < clave.length; i++) hash = (hash * 31 + clave.charCodeAt(i)) >>> 0;
-  return PALETA_FALLBACK_COMPANIA[hash % PALETA_FALLBACK_COMPANIA.length];
+  for (let i = 0; i < key.length; i++) {
+    hash = key.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 55%, 42%)`;
 }
 
 // Gráfico de barras horizontales apiladas: una fila por ramo, coloreada por compañía
@@ -887,7 +872,7 @@ function svgMultiLineChart(labels, series) {
   const max = Math.max(...series.flatMap(s => s.valores), 1);
   const stepX = labels.length > 1 ? (w - 2 * pad) / (labels.length - 1) : 0;
   const lineas = series.map((s, si) => {
-    const color = PALETA_COMPARAR[si % PALETA_COMPARAR.length];
+    const color = s.color || PALETA_COMPARAR[si % PALETA_COMPARAR.length];
     const points = s.valores.map((v, i) => ({ x: pad + i * stepX, y: h - pad - (v / max) * (h - 2 * pad), v }));
     const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
     const circles = points.map(p =>
@@ -899,7 +884,7 @@ function svgMultiLineChart(labels, series) {
     `<text x="${(pad + i * stepX).toFixed(1)}" y="${h - 8}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(l)}</text>`
   ).join('');
   const leyenda = series.map((s, si) =>
-    `<span style="display:inline-flex;align-items:center;gap:6px;margin:4px 14px 4px 0;font-size:12px"><span style="width:10px;height:10px;border-radius:50%;background:${PALETA_COMPARAR[si % PALETA_COMPARAR.length]};display:inline-block"></span>${esc(s.label)}</span>`
+    `<span style="display:inline-flex;align-items:center;gap:6px;margin:4px 14px 4px 0;font-size:12px"><span style="width:10px;height:10px;border-radius:50%;background:${s.color || PALETA_COMPARAR[si % PALETA_COMPARAR.length]};display:inline-block"></span>${esc(s.label)}</span>`
   ).join('');
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px" preserveAspectRatio="xMidYMid meet">
     <line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" stroke="var(--line)"></line>
@@ -981,7 +966,7 @@ function dashboard() {
     duplaTexto = duplas.length === 1 ? duplas[0] : (duplas.length > 1 ? duplas.join(' + ') + ' (compartido)' : '—');
   }
 
-  $('#app').innerHTML = `<div class="top"><div><h1>Dashboard</h1><div class="sub">Visión ejecutiva de productores y producción</div></div><div class="filters"><select class="select" id="forg">${opts(organizadoresTodos, state.org)}</select><select class="select" id="fpas" ${exigeOrg ? '' : 'disabled'}>${exigeOrg ? opts(pasDisponibles, state.pasSel) : '<option>Elegí un organizador primero</option>'}</select>${exigeOrg ? `<span class="pill" style="align-self:center;white-space:nowrap">Dupla: ${esc(duplaTexto)}</span>` : ''}</div></div><div class="grid kpis"><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,135,99,.12);color:#1B8763">${ICONO_DOC}</div><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,58,92,.12);color:#1B3A5C">${ICONO_PERSONA}</div><div class="label">PAS en producción</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(45,108,166,.12);color:#2D6CA6">${ICONO_EDIFICIO}</div><div class="label">Compañías</div><div class="num">${fmt(D.catalog.companias.length)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(193,97,63,.12);color:#C1613F">${ICONO_MALETIN}</div><div class="label">Organizaciones</div><div class="num">${fmt(D.catalog.organizaciones.length)}</div></div></div><div class="grid two section"><div class="card"><h3>${ICONO_BARRAS}Producción por ramo</h3>${Object.entries(ramo).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v], i) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(Object.entries(ramo)) * 100}%;background:${PALETA_COMPARAR[i % PALETA_COMPARAR.length]}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>${ICONO_ESTRELLA}Top PAS</h3>${topP.map(([k, v], i) => `<div class="barrow"><span style="display:flex;align-items:center;gap:6px">${medalla(i)}<span class="link" data-pas="${esc(k)}">${esc(k)}</span></span><div class="bar"><i style="width:${v / max(topP) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('')}</div></div><div class="grid two section"><div class="card"><h3>${ICONO_EDIFICIO}Top compañías</h3>${topC.map(([k, v], i) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topC) * 100}%;background:${PALETA_COMPARAR[i % PALETA_COMPARAR.length]}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div><div class="card"><h3>${ICONO_BASE}Estado de la base</h3><div class="profile"><div class="field"><b>PAS totales</b>${fmt(D.producers.length)}</div><div class="field"><b>Con teléfono</b>${fmt(D.producers.filter(p => p.TELÉFONO).length)}</div><div class="field"><b>Con mail</b>${fmt(D.producers.filter(p => p.MAIL).length)}</div><div class="field"><b>Con organización</b>${fmt(D.producers.filter(p => p.ORGANIZACIÓN).length)}</div></div><p class="notice">Los filtros se aplican a la producción. La ficha individual consulta toda la información disponible.</p></div></div>`;
+  $('#app').innerHTML = `<div class="top"><div><h1>Dashboard</h1><div class="sub">Visión ejecutiva de productores y producción</div></div><div class="filters"><select class="select" id="forg">${opts(organizadoresTodos, state.org)}</select><select class="select" id="fpas" ${exigeOrg ? '' : 'disabled'}>${exigeOrg ? opts(pasDisponibles, state.pasSel) : '<option>Elegí un organizador primero</option>'}</select>${exigeOrg ? `<span class="pill" style="align-self:center;white-space:nowrap">Dupla: ${esc(duplaTexto)}</span>` : ''}</div></div><div class="grid kpis"><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,135,99,.12);color:#1B8763">${ICONO_DOC}</div><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,58,92,.12);color:#1B3A5C">${ICONO_PERSONA}</div><div class="label">PAS en producción</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(45,108,166,.12);color:#2D6CA6">${ICONO_EDIFICIO}</div><div class="label">Compañías</div><div class="num">${fmt(D.catalog.companias.length)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(193,97,63,.12);color:#C1613F">${ICONO_MALETIN}</div><div class="label">Organizaciones</div><div class="num">${fmt(D.catalog.organizaciones.length)}</div></div></div><div class="grid two section"><div class="card"><h3>${ICONO_BARRAS}Producción por ramo</h3>${Object.entries(ramo).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v], i) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(Object.entries(ramo)) * 100}%;background:${PALETA_COMPARAR[i % PALETA_COMPARAR.length]}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>${ICONO_ESTRELLA}Top PAS</h3>${topP.map(([k, v], i) => `<div class="barrow"><span style="display:flex;align-items:center;gap:6px">${medalla(i)}<span class="link" data-pas="${esc(k)}">${esc(k)}</span></span><div class="bar"><i style="width:${v / max(topP) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('')}</div></div><div class="grid two section"><div class="card"><h3>${ICONO_EDIFICIO}Top compañías</h3>${topC.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topC) * 100}%;background:${colorParaCompania(k)}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div><div class="card"><h3>${ICONO_BASE}Estado de la base</h3><div class="profile"><div class="field"><b>PAS totales</b>${fmt(D.producers.length)}</div><div class="field"><b>Con teléfono</b>${fmt(D.producers.filter(p => p.TELÉFONO).length)}</div><div class="field"><b>Con mail</b>${fmt(D.producers.filter(p => p.MAIL).length)}</div><div class="field"><b>Con organización</b>${fmt(D.producers.filter(p => p.ORGANIZACIÓN).length)}</div></div><p class="notice">Los filtros se aplican a la producción. La ficha individual consulta toda la información disponible.</p></div></div>`;
   $('#forg').onchange = e => { state.org = e.target.value; state.pasSel = 'TODOS'; render() };
   if (exigeOrg) $('#fpas').onchange = e => { state.pasSel = e.target.value; render() };
   document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render() })
@@ -1094,7 +1079,7 @@ function ficha(pas) {
   const selectRamo = `<select class="select" id="fic-chart-ramo">${ramosDelPas.map(r => `<option value="${esc(r)}" ${r === state.chartRamo ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select>`;
   const selectEvo = `<select class="select" id="fic-chart-evo">${opcionesEvo.map(v => `<option value="${esc(v)}" ${v === state.chartEvo ? 'selected' : ''}>${esc(etiquetaEvo(v))}</option>`).join('')}</select>`;
 
-  const cardCompanias = companiasDelPas.length ? selectCompania + svgLineChart(trimestresAsc, serieCompania(state.chartCompania)) : '<div class="empty">Sin producción</div>';
+  const cardCompanias = companiasDelPas.length ? selectCompania + svgLineChart(trimestresAsc, serieCompania(state.chartCompania), colorParaCompania(state.chartCompania)) : '<div class="empty">Sin producción</div>';
   const ramoDatos = state.chartCompania ? serieRamoCompania(state.chartRamo, state.chartCompania) : serieRamo(state.chartRamo);
   const cardRamos = ramosDelPas.length ? selectRamo + svgLineChart(trimestresAsc, ramoDatos) : '<div class="empty">Sin producción</div>';
   const cardEvo = selectEvo + svgLineChart(trimestresAsc, datosEvo);
@@ -1176,13 +1161,13 @@ function comparar() {
     return `<label data-nombre="${esc(it.toLowerCase())}"><input type="checkbox" value="${esc(it)}" ${marcado ? 'checked' : ''} ${deshabilitado ? 'disabled' : ''}>${esc(it)}</label>`;
   }).join('') || '<div class="sinresultados">No hay elementos para esta dimensión.</div>';
 
-  const series = state.cmpSel.map(valor => ({ label: valor, valores: serieComparar(state.cmpDim, valor, trimestresGlobal) }));
+  const series = state.cmpSel.map(valor => ({ label: valor, valores: serieComparar(state.cmpDim, valor, trimestresGlobal), color: state.cmpDim === 'COMPANIA' ? colorParaCompania(valor) : undefined }));
 
   // Desglose: un solo selector (PAS/Ramos/Compañías/Organizaciones, se omite el que coincide con la dimensión elegida) aplicado a todos los elementos tildados
   const opcionesDesglose = TIPOS_DESGLOSE.filter(d => d.valor !== state.cmpDim);
   if (!opcionesDesglose.some(d => d.valor === state.cmpDesglose)) state.cmpDesglose = opcionesDesglose[0] ? opcionesDesglose[0].valor : null;
   const selectDesglose = `<select class="select" id="cmp-desglose-tipo">${opcionesDesglose.map(d => `<option value="${d.valor}" ${d.valor === state.cmpDesglose ? 'selected' : ''}>${esc(d.etiqueta)}</option>`).join('')}</select>`;
-  const desglose = state.cmpSel.length ? `<div class="card section"><h3>Desglose</h3><div class="formgrid"><div class="full"><label>Ver ranking de</label>${selectDesglose}</div></div><div class="grid two section">${state.cmpSel.map(valor => bloqueRanking(valor, rankingParaTipo(state.cmpDesglose, filasParaDimension(state.cmpDim, valor)))).join('')}</div></div>` : '';
+  const desglose = state.cmpSel.length ? `<div class="card section"><h3>Desglose</h3><div class="formgrid"><div class="full"><label>Ver ranking de</label>${selectDesglose}</div></div><div class="grid two section">${state.cmpSel.map(valor => bloqueRanking(valor, rankingParaTipo(state.cmpDesglose, filasParaDimension(state.cmpDim, valor)), state.cmpDesglose)).join('')}</div></div>` : '';
 
   $('#app').innerHTML = `<div class="top"><div><h1>Comparar</h1><div class="sub">Compará producción entre distintos elementos de la base</div></div></div><div class="grid two section"><div class="card"><h3>¿Qué querés comparar?</h3><div class="formgrid"><div class="full"><label>Dimensión</label>${selectDim}</div></div><div class="section"><label>Elegí hasta ${MAX_SELECCION_COMPARAR} — ${esc(dimActual.etiqueta.toLowerCase())}</label><input id="cmp-buscar" placeholder="Buscar..." value="${esc(textoBuscado)}"><div id="cmp-lista" class="checklist">${checklistItems}</div></div></div><div class="card"><h3>Evolución trimestral comparada</h3>${state.cmpSel.length ? svgMultiLineChart(trimestresGlobal, series) : '<div class="empty">Elegí al menos un elemento para comparar</div>'}</div></div>${desglose}`;
 
@@ -1679,7 +1664,7 @@ function renderEstadisticasDupla(dupla) {
   const serieTotal = trimestresAsc.map(t => rows.filter(x => x.TRIMESTRE === t).reduce((s, x) => s + (x.TOTAL || 0), 0));
   const max = a => Math.max(...a.map(x => x[1]), 1);
 
-  return `<div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">PAS a cargo</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(topRamo.length)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(topComp.length)}</div></div></div><div class="grid two section"><div class="card"><h3>Top PAS</h3>${topPas.map(([k, v]) => `<div class="barrow"><span class="link" data-pas="${esc(k)}">${esc(k)}</span><div class="bar"><i style="width:${v / max(topPas) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div><div class="card"><h3>Evolución trimestral</h3>${svgLineChart(trimestresAsc, serieTotal)}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${topRamo.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topRamo) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>Top compañías</h3>${topComp.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topComp) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div></div>`;
+  return `<div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">PAS a cargo</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(topRamo.length)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(topComp.length)}</div></div></div><div class="grid two section"><div class="card"><h3>Top PAS</h3>${topPas.map(([k, v]) => `<div class="barrow"><span class="link" data-pas="${esc(k)}">${esc(k)}</span><div class="bar"><i style="width:${v / max(topPas) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div><div class="card"><h3>Evolución trimestral</h3>${svgLineChart(trimestresAsc, serieTotal)}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${topRamo.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topRamo) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>Top compañías</h3>${topComp.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topComp) * 100}%;background:${colorParaCompania(k)}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div></div>`;
 }
 
 /* ============== PUNTO DE ENTRADA ============== */

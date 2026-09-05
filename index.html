@@ -820,13 +820,34 @@ function rankingParaTipo(tipo, filas) {
 function bloqueRanking(titulo, datos, tipo) {
   if (!datos.length) return `<div class="card"><h3>${esc(titulo)}</h3><div class="empty">Sin datos</div></div>`;
   const max = datos[0][1] || 1;
-  return `<div class="card"><h3>${esc(titulo)}</h3>${datos.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max * 100}%${tipo === 'COMPANIA' ? `;background:${colorParaCompania(k)}` : ''}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div>`;
+  return `<div class="card"><h3>${esc(titulo)}</h3>${datos.map(([k, v], i) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max * 100}%;background:${tipo === 'COMPANIA' ? colorParaCompania(k) : colorPorRanking(i, datos.length)}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div>`;
 }
 
 const PALETA_COMPARAR = ['#1B8763', '#1B3A5C', '#2D6CA6', '#C1613F', '#5FA98A'];
 
-// Solo 3 marcas globales con color verificado. Para el resto (aseguradoras regionales sin manual de
-// marca público) se genera un color estable a partir del nombre — mismo nombre, siempre mismo color.
+// Rankings (top PAS, producción por ramo, desgloses que no son por compañía) no representan
+// entidades distintas entre sí, así que en vez de un color por fila usan siempre --verde-marca
+// con la intensidad decreciendo según la posición — el primero se ve pleno, el último más tenue.
+function colorPorRanking(indice, total) {
+  const opacidad = 1 - (indice / total) * 0.55;
+  return `rgba(27, 135, 99, ${opacidad.toFixed(2)})`;
+}
+
+// Solo 3 marcas globales con color verificado. Para el resto, en vez de un hue libre por hash
+// (que podía caer en cualquier tonalidad, incluida magenta/violeta), el hash elige un ÍNDICE
+// dentro de una paleta fija y prolija — mismo nombre, siempre el mismo color de esos 10.
+const PALETA_COMPANIAS = [
+  '#1B8763', // verde marca
+  '#1B3A5C', // azul marca
+  '#2D6CA6', // azul medio
+  '#5FA88D', // verde claro
+  '#8AA8C4', // azul grisáceo claro
+  '#3F6B52', // verde oscuro
+  '#B08D57', // dorado apagado
+  '#6D8CA6', // azul acero
+  '#2F5D4F', // verde bosque
+  '#9C7A4E', // ocre
+];
 const COLOR_COMPANIAS_OVERRIDE = {
   'ALLIANZ': '#003781',
   'HDI': '#E2001A',
@@ -840,8 +861,7 @@ function colorParaCompania(nombre) {
     hash = key.charCodeAt(i) + ((hash << 5) - hash);
     hash |= 0;
   }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 55%, 42%)`;
+  return PALETA_COMPANIAS[Math.abs(hash) % PALETA_COMPANIAS.length];
 }
 
 // Gráfico de barras horizontales apiladas: una fila por ramo, coloreada por compañía
@@ -954,6 +974,7 @@ function dashboard() {
   rows.forEach(x => { ramo[x.RAMO] = (ramo[x.RAMO] || 0) + x.TOTAL; Object.entries(x.COMPANIAS).forEach(([c, v]) => comp[c] = (comp[c] || 0) + v); });
   const topP = Object.entries(prodByPas()).filter(([p]) => pasSet.has(p)).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const topC = Object.entries(comp).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const topRamoDash = Object.entries(ramo).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const max = a => Math.max(...a.map(x => x[1]), 1);
 
   // Desplegable 1: organizador (siempre habilitado, lista completa)
@@ -972,7 +993,7 @@ function dashboard() {
     duplaTexto = duplas.length === 1 ? duplas[0] : (duplas.length > 1 ? duplas.join(' + ') + ' (compartido)' : '—');
   }
 
-  $('#app').innerHTML = `<div class="top"><div><h1>Dashboard</h1><div class="sub">Visión ejecutiva de productores y producción</div></div><div class="filters"><select class="select" id="forg">${opts(organizadoresTodos, state.org)}</select><select class="select" id="fpas" ${exigeOrg ? '' : 'disabled'}>${exigeOrg ? opts(pasDisponibles, state.pasSel) : '<option>Elegí un organizador primero</option>'}</select>${exigeOrg ? `<span class="pill" style="align-self:center;white-space:nowrap">Dupla: ${esc(duplaTexto)}</span>` : ''}</div></div><div class="grid kpis"><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,135,99,.12);color:#1B8763">${ICONO_DOC}</div><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,58,92,.12);color:#1B3A5C">${ICONO_PERSONA}</div><div class="label">PAS en producción</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(45,108,166,.12);color:#2D6CA6">${ICONO_EDIFICIO}</div><div class="label">Compañías</div><div class="num">${fmt(D.catalog.companias.length)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(193,97,63,.12);color:#C1613F">${ICONO_MALETIN}</div><div class="label">Organizaciones</div><div class="num">${fmt(D.catalog.organizaciones.length)}</div></div></div><div class="grid two section"><div class="card"><h3>${ICONO_BARRAS}Producción por ramo</h3>${Object.entries(ramo).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v], i) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(Object.entries(ramo)) * 100}%;background:${PALETA_COMPARAR[i % PALETA_COMPARAR.length]}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>${ICONO_ESTRELLA}Top PAS</h3>${topP.map(([k, v], i) => `<div class="barrow"><span style="display:flex;align-items:center;gap:6px">${medalla(i)}<span class="link" data-pas="${esc(k)}">${esc(k)}</span></span><div class="bar"><i style="width:${v / max(topP) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('')}</div></div><div class="grid two section"><div class="card"><h3>${ICONO_EDIFICIO}Top compañías</h3>${topC.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topC) * 100}%;background:${colorParaCompania(k)}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div><div class="card"><h3>${ICONO_BASE}Estado de la base</h3><div class="profile"><div class="field"><b>PAS totales</b>${fmt(D.producers.length)}</div><div class="field"><b>Con teléfono</b>${fmt(D.producers.filter(p => p.TELÉFONO).length)}</div><div class="field"><b>Con mail</b>${fmt(D.producers.filter(p => p.MAIL).length)}</div><div class="field"><b>Con organización</b>${fmt(D.producers.filter(p => p.ORGANIZACIÓN).length)}</div></div><p class="notice">Los filtros se aplican a la producción. La ficha individual consulta toda la información disponible.</p></div></div>`;
+  $('#app').innerHTML = `<div class="top"><div><h1>Dashboard</h1><div class="sub">Visión ejecutiva de productores y producción</div></div><div class="filters"><select class="select" id="forg">${opts(organizadoresTodos, state.org)}</select><select class="select" id="fpas" ${exigeOrg ? '' : 'disabled'}>${exigeOrg ? opts(pasDisponibles, state.pasSel) : '<option>Elegí un organizador primero</option>'}</select>${exigeOrg ? `<span class="pill" style="align-self:center;white-space:nowrap">Dupla: ${esc(duplaTexto)}</span>` : ''}</div></div><div class="grid kpis"><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,135,99,.12);color:#1B8763">${ICONO_DOC}</div><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(27,58,92,.12);color:#1B3A5C">${ICONO_PERSONA}</div><div class="label">PAS en producción</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(45,108,166,.12);color:#2D6CA6">${ICONO_EDIFICIO}</div><div class="label">Compañías</div><div class="num">${fmt(D.catalog.companias.length)}</div></div><div class="card kpi"><div class="kpi-icon" style="background:rgba(193,97,63,.12);color:#C1613F">${ICONO_MALETIN}</div><div class="label">Organizaciones</div><div class="num">${fmt(D.catalog.organizaciones.length)}</div></div></div><div class="grid two section"><div class="card"><h3>${ICONO_BARRAS}Producción por ramo</h3>${topRamoDash.map(([k, v], i) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topRamoDash) * 100}%;background:${colorPorRanking(i, topRamoDash.length)}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>${ICONO_ESTRELLA}Top PAS</h3>${topP.map(([k, v], i) => `<div class="barrow"><span style="display:flex;align-items:center;gap:6px">${medalla(i)}<span class="link" data-pas="${esc(k)}">${esc(k)}</span></span><div class="bar"><i style="width:${v / max(topP) * 100}%;background:${colorPorRanking(i, topP.length)}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div></div><div class="grid two section"><div class="card"><h3>${ICONO_EDIFICIO}Top compañías</h3>${topC.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topC) * 100}%;background:${colorParaCompania(k)}"></i></div><b>${fmt(v)}</b></div>`).join('')}</div><div class="card"><h3>${ICONO_BASE}Estado de la base</h3><div class="profile"><div class="field"><b>PAS totales</b>${fmt(D.producers.length)}</div><div class="field"><b>Con teléfono</b>${fmt(D.producers.filter(p => p.TELÉFONO).length)}</div><div class="field"><b>Con mail</b>${fmt(D.producers.filter(p => p.MAIL).length)}</div><div class="field"><b>Con organización</b>${fmt(D.producers.filter(p => p.ORGANIZACIÓN).length)}</div></div><p class="notice">Los filtros se aplican a la producción. La ficha individual consulta toda la información disponible.</p></div></div>`;
   $('#forg').onchange = e => { state.org = e.target.value; state.pasSel = 'TODOS'; render() };
   if (exigeOrg) $('#fpas').onchange = e => { state.pasSel = e.target.value; render() };
   document.querySelectorAll('[data-pas]').forEach(e => e.onclick = () => { state.pas = e.dataset.pas; state.view = 'ficha'; render() })
@@ -1670,7 +1691,7 @@ function renderEstadisticasDupla(dupla) {
   const serieTotal = trimestresAsc.map(t => rows.filter(x => x.TRIMESTRE === t).reduce((s, x) => s + (x.TOTAL || 0), 0));
   const max = a => Math.max(...a.map(x => x[1]), 1);
 
-  return `<div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">PAS a cargo</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(topRamo.length)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(topComp.length)}</div></div></div><div class="grid two section"><div class="card"><h3>Top PAS</h3>${topPas.map(([k, v]) => `<div class="barrow"><span class="link" data-pas="${esc(k)}">${esc(k)}</span><div class="bar"><i style="width:${v / max(topPas) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div><div class="card"><h3>Evolución trimestral</h3>${svgLineChart(trimestresAsc, serieTotal)}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${topRamo.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topRamo) * 100}%"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>Top compañías</h3>${topComp.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topComp) * 100}%;background:${colorParaCompania(k)}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div></div>`;
+  return `<div class="grid kpis"><div class="card kpi"><div class="label">Pólizas cargadas</div><div class="num">${fmt(total)}</div></div><div class="card kpi"><div class="label">PAS a cargo</div><div class="num">${fmt(pasSet.size)}</div></div><div class="card kpi"><div class="label">Ramos activos</div><div class="num">${fmt(topRamo.length)}</div></div><div class="card kpi"><div class="label">Compañías activas</div><div class="num">${fmt(topComp.length)}</div></div></div><div class="grid two section"><div class="card"><h3>Top PAS</h3>${topPas.map(([k, v], i) => `<div class="barrow"><span class="link" data-pas="${esc(k)}">${esc(k)}</span><div class="bar"><i style="width:${v / max(topPas) * 100}%;background:${colorPorRanking(i, topPas.length)}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin producción</div>'}</div><div class="card"><h3>Evolución trimestral</h3>${svgLineChart(trimestresAsc, serieTotal)}</div></div><div class="grid two section"><div class="card"><h3>Producción por ramo</h3>${topRamo.map(([k, v], i) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topRamo) * 100}%;background:${colorPorRanking(i, topRamo.length)}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div><div class="card"><h3>Top compañías</h3>${topComp.map(([k, v]) => `<div class="barrow"><span>${esc(k)}</span><div class="bar"><i style="width:${v / max(topComp) * 100}%;background:${colorParaCompania(k)}"></i></div><b>${fmt(v)}</b></div>`).join('') || '<div class="empty">Sin datos</div>'}</div></div>`;
 }
 
 /* ============== PUNTO DE ENTRADA ============== */

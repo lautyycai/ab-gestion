@@ -1291,6 +1291,8 @@ function vistaUsuarios() {
       document.getElementById('us-email').value = '';
       document.getElementById('us-pass').value = '';
       document.getElementById('us-dupla').selectedIndex = 0;
+      usuariosCache = null;
+      renderListaUsuarios();
     } catch (err) {
       btn.disabled = false; btn.textContent = 'Crear usuario';
       msg.innerHTML = `<div class="formerr">Error de red: ${esc(err.message)}</div>`;
@@ -1344,7 +1346,7 @@ function renderListaUsuarios() {
         const result = await resp.json();
         if (!resp.ok) { alert(result.error || 'No se pudo eliminar el usuario'); btn.disabled = false; return; }
         usuariosCache = null;
-        cargarUsuarios();
+        renderListaUsuarios();
       } catch (err) {
         alert('Error de red: ' + err.message);
         btn.disabled = false;
